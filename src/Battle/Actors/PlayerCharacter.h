@@ -171,7 +171,7 @@ public:
 	CString<64> ExeStateName;
 
 	//last received hit action. clear after read
-	HitAction ReceivedHitAction = HACT_None;
+	EHitAction ReceivedHitAction = HACT_None;
 	//last received attack level. clear after read
 	int ReceivedAttackLevel = -1; 
 

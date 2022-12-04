@@ -11,8 +11,6 @@ class State;
 class PlayerCharacter;
 class FighterGameState;
 
-#define COORD_SCALE ((double)3000)
-
 constexpr int32_t CollisionArraySize = 50;
 
 enum PosType
@@ -198,14 +196,16 @@ protected:
 	int32_t PushWidth = 0;
 	int32_t PushWidthExpand = 0;
 	int32_t Hitstop = 0;
+	HitEffect NormalHitEffect;
+	HitEffect CounterHitEffect;
+public:
 	int32_t L = 0;
 	int32_t R = 0;
 	int32_t T = 0;
 	int32_t B = 0;
-	HitEffect NormalHitEffect;
-	HitEffect CounterHitEffect;
 	bool HitActive = false;
 	bool IsAttacking = false;
+private:
 	bool AttackHeadAttribute = false;
 	bool AttackProjectileAttribute = true;
 	bool RoundStart = true;

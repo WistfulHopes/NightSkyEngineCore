@@ -144,6 +144,7 @@ enum class StateCondition
 class State
 {
 public:
+	virtual ~State() = default;
 	PlayerCharacter* Parent;
 	BattleActor* ObjectParent;
 	CString<64> Name;

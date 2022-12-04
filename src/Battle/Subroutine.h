@@ -9,6 +9,7 @@ class BattleActor;
 class Subroutine
 {
 public:
+	virtual ~Subroutine() = default;
 	BattleActor* Parent;
 	CString<64> Name;
 

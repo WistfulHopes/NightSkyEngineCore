@@ -1,7 +1,7 @@
 #pragma once
 #pragma pack (push, 1)
 
-enum EBoxType
+enum BoxType
 {
 	Hurtbox,
 	Hitbox,
