@@ -205,7 +205,7 @@ public:
 	int32_t B = 0;
 	bool HitActive = false;
 	bool IsAttacking = false;
-private:
+protected:
 	bool AttackHeadAttribute = false;
 	bool AttackProjectileAttribute = true;
 	bool RoundStart = true;
