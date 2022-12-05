@@ -16,9 +16,11 @@ int FighterGameState::GetLocalInputs(int Index)
 	if (Index < 2)
 		if (IsGamepadAvailable(dynamic_cast<ControllerInputDevice*>(InputDevices[Index])->controller_id))
 			return InputDevices[Index]->GetInputs();
-#endif
 	if (Index == 0)
 		return InputDevices[2]->GetInputs();
+#endif
+	if (Index < 2)
+		return InputDevices[Index]->GetInputs();
 	return 0;
 }
 
