@@ -317,7 +317,7 @@ void PlayerCharacter::Update()
 		{
 			StateMachine.CurrentState->OnLanding();
 		}
-		CreateCommonParticle("cmn_jumpland_smoke", POS_Player);
+		CreateCommonParticle("cmn_jumpland_smoke", POS_Player, Vector(0, 0), 0);
 		HandleGroundBounce();
 	}
 	HandleThrowCollision();
@@ -1222,21 +1222,6 @@ void PlayerCharacter::SetThrowLockCel(int32_t Index)
 	}
 }
 
-void PlayerCharacter::PlayVoice(char* Name)
-{
-	/*if (VoiceData != nullptr)
-	{
-		for (FSoundDataStruct SoundStruct : VoiceData->SoundDatas)
-		{
-			if (SoundStruct.Name == Name)
-			{
-				GameState->PlayVoiceLine(SoundStruct.SoundWave, SoundStruct.MaxDuration, ObjNumber - 400);
-				break;
-			}
-		}
-	}*/
-}
-
 BattleActor* PlayerCharacter::AddBattleActor(char* InStateName, int PosXOffset, int PosYOffset)
 {
 	int Index = 0;
@@ -1277,14 +1262,6 @@ void PlayerCharacter::AddBattleActorToStorage(BattleActor* InActor, int Index)
 	{
 		StoredBattleActors[Index] = InActor;
 	}
-}
-
-void PlayerCharacter::PlayCommonCameraAnim(char* Name)
-{
-}
-
-void PlayerCharacter::PlayCharaCameraAnim(char* Name)
-{
 }
 
 void PlayerCharacter::EnableFAirDashCancel(bool Enable)
@@ -1352,11 +1329,6 @@ void PlayerCharacter::StartSuperFreeze(int Duration)
 {
 	GameState->StartSuperFreeze(Duration);
 	StateMachine.CurrentState->OnSuperFreeze();
-}
-
-void PlayerCharacter::BattleHudVisibility(bool Visible)
-{
-	//GameState->BattleHudVisibility(Visible);
 }
 
 void PlayerCharacter::DisableLastInput()

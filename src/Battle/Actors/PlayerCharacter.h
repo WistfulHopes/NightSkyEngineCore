@@ -351,15 +351,15 @@ public:
 	//sets grip position for throw
 	void SetThrowLockCel(int32_t Index);
 	//plays voice line
-	void PlayVoice(char* Name);
+	std::function<void(char*)> PlayVoice;
 	//plays common level sequence
-    void PlayCommonCameraAnim(char* Name);
+	std::function<void(char*)> PlayCommonCameraAnim;
 	//plays character level sequence
-    void PlayCharaCameraAnim(char* Name);
+	std::function<void(char*)> PlayCharaCameraAnim;
 	//starts super freeze
 	void StartSuperFreeze(int Duration);
 	//toggles hud visibility
-	void BattleHudVisibility(bool Visible);
+	std::function<void(bool)> BattleHudVisibility;
 	//disables last input
 	void DisableLastInput();
 	//creates object

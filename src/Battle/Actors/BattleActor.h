@@ -364,15 +364,15 @@ public:
 	//sets hit effect on counter hit
 	void SetCounterHitEffect(HitEffect InHitEffect);
 	//creates common particle
-	void CreateCommonParticle(char* Name, PosType PosType, Vector Offset = Vector(0, 0), int32_t Angle = 0);
+	std::function<void(char*, PosType, Vector, int32_t)> CreateCommonParticle;
 	//creates character particle
-	void CreateCharaParticle(char* Name, PosType PosType, Vector Offset = Vector(0, 0), int32_t Angle = 0);
+	std::function<void(char*, PosType PosType, Vector, int32_t)> CreateCharaParticle;
 	//creates character particle and attaches it to the object. only use with non-player objects.
-	void LinkCharaParticle(char* Name);
+	std::function<void(char*)> LinkCharaParticle;
 	//plays common sound
-	void PlayCommonSound(char* Name);
+	std::function<void(char*)> PlayCommonSound;
 	//plays chara sound
-	void PlayCharaSound(char* Name);
+	std::function<void(char*)> PlayCharaSound;
 	//pauses round timer
 	void PauseRoundTimer(bool Pause);
 	//sets object id
