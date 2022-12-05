@@ -44,7 +44,7 @@ void FighterGameState::UpdateRemoteInput(int32_t RemoteInput)
 
 void FighterGameState::HandleRoundWin()
 {
-	if (StoredBattleState.RoundFormat < RoundFormat::TwoVsTwo)
+	if (StoredBattleState.RoundFormat < TwoVsTwo)
 	{
 		if (Players[0]->CurrentHealth > 0 && Players[3]->CurrentHealth <= 0)
 		{
@@ -146,74 +146,74 @@ void FighterGameState::HandleMatchWin()
 {
 	switch (StoredBattleState.RoundFormat)
 	{
-	case RoundFormat::FirstToOne:
+	case FirstToOne:
 		if (StoredBattleState.P1RoundsWon > 0 && StoredBattleState.P2RoundsWon < StoredBattleState.P1RoundsWon)
 		{
-			//UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
+			MatchWon = true;
 		}
 		else if (StoredBattleState.P2RoundsWon > 0 && StoredBattleState.P1RoundsWon < StoredBattleState.P2RoundsWon)
 		{
-			//UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
+			MatchWon = true;
 		}
 		else if (StoredBattleState.P1RoundsWon == 2 && StoredBattleState.P2RoundsWon == 2)
 		{
-			//UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
+			MatchWon = true;
 		}
 		return;
-	case RoundFormat::FirstToTwo:
+	case FirstToTwo:
 		if (StoredBattleState.P1RoundsWon > 1 && StoredBattleState.P2RoundsWon < StoredBattleState.P1RoundsWon)
 		{
-			//UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
+			MatchWon = true;
 		}
 		else if (StoredBattleState.P2RoundsWon > 1 && StoredBattleState.P1RoundsWon < StoredBattleState.P2RoundsWon)
 		{
-			//UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
+			MatchWon = true;
 		}
 		else if (StoredBattleState.P1RoundsWon == 3 && StoredBattleState.P2RoundsWon == 3)
 		{
-			//UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
+			MatchWon = true;
 		}
 		return;
-	case RoundFormat::FirstToThree:
+	case FirstToThree:
 		if (StoredBattleState.P1RoundsWon > 2 && StoredBattleState.P2RoundsWon < StoredBattleState.P1RoundsWon)
 		{
-			//UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
+			MatchWon = true;
 		}
 		else if (StoredBattleState.P2RoundsWon > 2 && StoredBattleState.P1RoundsWon < StoredBattleState.P2RoundsWon)
 		{
-			//UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
+			MatchWon = true;
 		}
 		else if (StoredBattleState.P1RoundsWon == 4 && StoredBattleState.P2RoundsWon == 4)
 		{
-			//UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
+			MatchWon = true;
 		}
 		return;
-	case RoundFormat::FirstToFour:
+	case FirstToFour:
 		if (StoredBattleState.P1RoundsWon > 3 && StoredBattleState.P2RoundsWon < StoredBattleState.P1RoundsWon)
 		{
-			//UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
+			MatchWon = true;
 		}
 		else if (StoredBattleState.P2RoundsWon > 3 && StoredBattleState.P1RoundsWon < StoredBattleState.P2RoundsWon)
 		{
-			//UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
+			MatchWon = true;
 		}
 		else if (StoredBattleState.P1RoundsWon == 5 && StoredBattleState.P2RoundsWon == 5)
 		{
-			//UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
+			MatchWon = true;
 		}
 		return;
-	case RoundFormat::FirstToFive:
+	case FirstToFive:
 		if (StoredBattleState.P1RoundsWon > 4 && StoredBattleState.P2RoundsWon < StoredBattleState.P1RoundsWon)
 		{
-			//UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
+			MatchWon = true;
 		}
 		else if (StoredBattleState.P2RoundsWon > 4 && StoredBattleState.P1RoundsWon < StoredBattleState.P2RoundsWon)
 		{
-			//UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
+			MatchWon = true;
 		}
 		else if (StoredBattleState.P1RoundsWon == 6 && StoredBattleState.P2RoundsWon == 6)
 		{
-			//UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
+			MatchWon = true;
 		}
 		return;
 	default:
@@ -281,7 +281,7 @@ void FighterGameState::Init()
 		SortedObjects[i + 6] = Objects[i];
 	}
 
-	StoredBattleState.RoundFormat = RoundFormat::FirstToTwo;
+	StoredBattleState.RoundFormat = FirstToTwo;
 	StoredBattleState.RoundTimer = 99 * 60;
 }
 

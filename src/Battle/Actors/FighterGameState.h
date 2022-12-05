@@ -109,7 +109,8 @@ public:
 	int32_t ActiveObjectCount;
 	
 	InputDevice* InputDevices[3] = {};
-
+	bool MatchWon;
+	
 private:
 	int32_t LocalInputs[2] = {0, 0};
 	int32_t RemoteInputs[2] = {0, 0};
