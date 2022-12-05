@@ -625,6 +625,13 @@ void PlayerCharacter::AddSubroutine(CString<64> Name, Subroutine* Subroutine)
 	SubroutineNames.push_back(Name);
 }
 
+void PlayerCharacter::AddCommonSubroutine(CString<64> Name, Subroutine* Subroutine)
+{
+	Subroutine->Parent = this;
+	CommonSubroutines.push_back(Subroutine);
+	CommonSubroutineNames.push_back(Name);
+}
+
 void PlayerCharacter::CallSubroutine(char* Name)
 {
 	int Index = 0;
@@ -1235,7 +1242,7 @@ BattleActor* PlayerCharacter::AddBattleActor(char* InStateName, int PosXOffset, 
 	int Index = 0;
 	for (CString<64> String : ObjectStateNames)
 	{
-		if (!strcmp(String.GetString(), ObjectStateName.GetString()))
+		if (!strcmp(String.GetString(), InStateName))
 		{
 			break;
 		}
@@ -1515,7 +1522,7 @@ void PlayerCharacter::ResetForRound()
 	SpeedXPercent = 100;
 	SpeedXPercentPerFrame = false;
 	FacingRight = false;
-	ScreenCollisionActive = false;
+	ScreenCollisionActive = true;
 	StateVal1 = 0;
 	StateVal2 = 0;
 	StateVal3 = 0;
@@ -1607,7 +1614,7 @@ void PlayerCharacter::HandleWallBounce()
 	{
 		if (CurrentWallBounceEffect.WallBounceInCornerOnly)
 		{
-			if (PosX > 1200000 || PosX < -1200000)
+			if (PosX > 2160000 || PosX < -2160000)
 			{
 				if (CurrentWallBounceEffect.WallBounceCount > 0)
 				{
@@ -1656,6 +1663,14 @@ void PlayerCharacter::HandleGroundBounce()
 		}
 	}
 }
+
+void PlayerCharacter::AddObjectState(CString<64> Name, State* State)
+{
+	State->Parent = this;
+	ObjectStates.push_back(State);
+	ObjectStateNames.push_back(Name);
+}
+
 void PlayerCharacter::LogForSyncTest(FILE* file)
 {
 	BattleActor::LogForSyncTest(file);

@@ -434,14 +434,15 @@ BattleActor* FighterGameState::AddBattleActor(State* InState, int PosX, int PosY
 	{
 		if (!Objects[i]->IsActive)
 		{
-			memcpy(Objects[i]->ObjectState, InState, sizeof(State));
+			Objects[i]->ObjectState = (State*)malloc(sizeof InState);
+			memcpy(Objects[i]->ObjectState, InState, sizeof InState);
 			Objects[i]->ObjectState->ObjectParent = Objects[i];
 			Objects[i]->IsActive = true;
 			Objects[i]->FacingRight = FacingRight;
 			Objects[i]->Player = Parent;
 			Objects[i]->SetPosX(PosX);
 			Objects[i]->SetPosY(PosY);
-			Objects[i]->InitObject();
+			Objects[i]->InitOnNextFrame = true;
 			return Objects[i];
 		}
 	}
@@ -569,15 +570,15 @@ void FighterGameState::SetWallCollision()
 			if (Players[i]->IsOnScreen)
 			{
 				Players[i]->TouchingWall = true;
-				if (Players[i]->GetInternalValue(VAL_PosX) > 600000 + StoredBattleState.CurrentScreenPos)
+				if (Players[i]->GetInternalValue(VAL_PosX) > 1080000 + StoredBattleState.CurrentScreenPos)
 				{
-					Players[i]->SetPosX(600001 + StoredBattleState.CurrentScreenPos);
+					Players[i]->SetPosX(1080000 + StoredBattleState.CurrentScreenPos);
 				}
-				else if (Players[i]->GetInternalValue(VAL_PosX) < -600000 + StoredBattleState.CurrentScreenPos)
+				else if (Players[i]->GetInternalValue(VAL_PosX) < -1080000 + StoredBattleState.CurrentScreenPos)
 				{
-					Players[i]->SetPosX(-600001 + StoredBattleState.CurrentScreenPos);
+					Players[i]->SetPosX(-1080000 + StoredBattleState.CurrentScreenPos);
 				}
-				else if (Players[i]->GetInternalValue(VAL_PosX) < 600000 + StoredBattleState.CurrentScreenPos || Players[i]->GetInternalValue(VAL_PosX) > -1080000 + StoredBattleState.CurrentScreenPos)
+				else if (Players[i]->GetInternalValue(VAL_PosX) < 1080000 + StoredBattleState.CurrentScreenPos || Players[i]->GetInternalValue(VAL_PosX) > -1080000 + StoredBattleState.CurrentScreenPos)
 				{
 					Players[i]->TouchingWall = false;
 				}

@@ -43,6 +43,11 @@ void BattleActor::Update()
 		ResetObject();
 		return;
 	}
+	if (InitOnNextFrame)
+	{
+		InitObject();
+		InitOnNextFrame = false;
+	}
 
 	L = PosX - PushWidth / 2; //sets pushboxes
 	R = PosX + PushWidth / 2;
@@ -111,12 +116,12 @@ void BattleActor::Update()
 			if (Player->PlayerIndex == 0)
 			{
 				FacingRight = true;
-				PosX = -200000;
+				PosX = -360000;
 			}
 			else
 			{
 				FacingRight = false;
-				PosX = 200000;
+				PosX = 360000;
 			}
 		}
 	}
@@ -174,13 +179,13 @@ void BattleActor::Move()
 	}
 	if (ScreenCollisionActive)
 	{
-		if (PosX < -1200000)
+		if (PosX < -2160000)
 		{
-			PosX = -1200001;
+			PosX = -2160000;
 		}
-		else if (PosX > 1200000)
+		else if (PosX > 2160000)
 		{
-			PosX = 1200001;
+			PosX = 2160000;
 		}
 	}
 }
@@ -385,7 +390,7 @@ void BattleActor::SetInternalValue(InternalValue InternalValue, int32_t Val, Obj
 	case VAL_Inertia:
 		Obj->Inertia = Val;
 	case VAL_FacingRight:
-		Obj->FacingRight = Val;
+		Obj->FacingRight = (bool)Val;
 	case VAL_DistanceToBackWall:
 	case VAL_DistanceToFrontWall:
 	case VAL_IsAir:
@@ -434,7 +439,7 @@ void BattleActor::SetInternalValue(InternalValue InternalValue, int32_t Val, Obj
 			Obj->Player->PlayerVal8 = Val;
 		break;
 	case VAL_DefaultCommonAction:
-		Obj->DefaultCommonAction = Val;
+		Obj->DefaultCommonAction = (bool)Val;
 	default:
 		return;
 	}
@@ -1921,7 +1926,7 @@ void BattleActor::DeactivateIfBeyondBounds()
 {
 	if (IsPlayer)
 		return;
-	if (PosX > 1200000 + GameState->StoredBattleState.CurrentScreenPos || PosX < -1200000 + GameState->StoredBattleState.CurrentScreenPos)
+	if (PosX > 2220000 + GameState->StoredBattleState.CurrentScreenPos || PosX < -2220000 + GameState->StoredBattleState.CurrentScreenPos)
 		DeactivateObject();
 }
 

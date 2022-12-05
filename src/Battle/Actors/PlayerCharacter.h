@@ -255,11 +255,16 @@ public:
 	//handles ground bounce
 	void HandleGroundBounce();
 	
-	//bp callable functions
+	//add object
+	void AddObjectState(CString<64> Name, State* State); 
 	//add state to state machine
 	void AddState(CString<64> Name, State* State); 
-	//add subroutine to state machine
+	//add common subroutine
 	void AddSubroutine(CString<64> Name, Subroutine* Subroutine);
+	//add subroutine
+	void AddCommonSubroutine(CString<64> Name, Subroutine* Subroutine);
+
+	//script callable functions
 	//calls subroutine
 	void CallSubroutine(char* Name);
 	//use meter

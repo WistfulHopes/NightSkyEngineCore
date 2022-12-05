@@ -204,6 +204,7 @@ public:
 	int32_t B = 0;
 	bool HitActive = false;
 	bool IsAttacking = false;
+	bool InitOnNextFrame = false;
 protected:
 	bool AttackHeadAttribute = false;
 	bool AttackProjectileAttribute = true;
