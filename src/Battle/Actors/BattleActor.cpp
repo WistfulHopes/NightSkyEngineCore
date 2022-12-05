@@ -1921,7 +1921,7 @@ void BattleActor::DeactivateIfBeyondBounds()
 {
 	if (IsPlayer)
 		return;
-	if (PosX > 1200000 + GameState->StoredBattleState.CurrentScreenPos || PosX < -1200000 + GameState->StoredBattleState.CurrentScreenPos)
+	if (PosX > 2220000 + GameState->StoredBattleState.CurrentScreenPos || PosX < -2220000 + GameState->StoredBattleState.CurrentScreenPos)
 		DeactivateObject();
 }
 

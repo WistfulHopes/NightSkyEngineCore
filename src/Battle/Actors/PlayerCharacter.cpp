@@ -1607,7 +1607,7 @@ void PlayerCharacter::HandleWallBounce()
 	{
 		if (CurrentWallBounceEffect.WallBounceInCornerOnly)
 		{
-			if (PosX > 1200000 || PosX < -1200000)
+			if (PosX > 2160000 || PosX < -2160000)
 			{
 				if (CurrentWallBounceEffect.WallBounceCount > 0)
 				{
