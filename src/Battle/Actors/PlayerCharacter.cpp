@@ -61,6 +61,11 @@ PlayerCharacter::PlayerCharacter()
 	ForwardJumpMeterGain = 10;
 	ForwardDashMeterGain = 25;
 	ForwardAirDashMeterGain = 25;
+	for (int i = 0; i < CancelArraySize; i++)
+	{
+		ChainCancelOptionsInternal[i] = -1;
+		WhiffCancelOptionsInternal[i] = -1;
+	}
 }
 
 void PlayerCharacter::InitPlayer()
@@ -1276,6 +1281,7 @@ void PlayerCharacter::AddChainCancelOption(CString<64> Option)
 		if (ChainCancelOptionsInternal[i] == -1)
 		{
 			ChainCancelOptionsInternal[i] = StateMachine.GetStateIndex(Option);
+			break;
 		}
 	}
 }
@@ -1287,6 +1293,7 @@ void PlayerCharacter::AddWhiffCancelOption(CString<64> Option)
 		if (WhiffCancelOptionsInternal[i] == -1)
 		{
 			WhiffCancelOptionsInternal[i] = StateMachine.GetStateIndex(Option);
+			break;
 		}
 	}
 }
@@ -1586,7 +1593,7 @@ void PlayerCharacter::HandleWallBounce()
 	{
 		if (CurrentWallBounceEffect.WallBounceInCornerOnly)
 		{
-			if (PosX > 2160000 || PosX < -2160000)
+			if (PosX > 1800000 || PosX < -1800000)
 			{
 				if (CurrentWallBounceEffect.WallBounceCount > 0)
 				{

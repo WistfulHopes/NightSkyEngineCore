@@ -570,15 +570,15 @@ void FighterGameState::SetWallCollision()
 			if (Players[i]->IsOnScreen)
 			{
 				Players[i]->TouchingWall = true;
-				if (Players[i]->GetInternalValue(VAL_PosX) > 1080000 + StoredBattleState.CurrentScreenPos)
+				if (Players[i]->GetInternalValue(VAL_PosX) > 900000 + StoredBattleState.CurrentScreenPos)
 				{
-					Players[i]->SetPosX(1080000 + StoredBattleState.CurrentScreenPos);
+					Players[i]->SetPosX(900001 + StoredBattleState.CurrentScreenPos);
 				}
-				else if (Players[i]->GetInternalValue(VAL_PosX) < -1080000 + StoredBattleState.CurrentScreenPos)
+				else if (Players[i]->GetInternalValue(VAL_PosX) < -900000 + StoredBattleState.CurrentScreenPos)
 				{
-					Players[i]->SetPosX(-1080000 + StoredBattleState.CurrentScreenPos);
+					Players[i]->SetPosX(-900001 + StoredBattleState.CurrentScreenPos);
 				}
-				else if (Players[i]->GetInternalValue(VAL_PosX) < 1080000 + StoredBattleState.CurrentScreenPos || Players[i]->GetInternalValue(VAL_PosX) > -1080000 + StoredBattleState.CurrentScreenPos)
+				else if (Players[i]->GetInternalValue(VAL_PosX) < 900000 + StoredBattleState.CurrentScreenPos || Players[i]->GetInternalValue(VAL_PosX) > -1080000 + StoredBattleState.CurrentScreenPos)
 				{
 					Players[i]->TouchingWall = false;
 				}
@@ -601,13 +601,13 @@ void FighterGameState::SetScreenBounds()
 					{
 					    int NewScreenPos = (Players[i]->GetInternalValue(VAL_PosX) + Players[j]->GetInternalValue(VAL_PosX)) / 2;
 						StoredBattleState.CurrentScreenPos = StoredBattleState.CurrentScreenPos + (NewScreenPos - StoredBattleState.CurrentScreenPos) * 10 / 100;
-						if (StoredBattleState.CurrentScreenPos > 1080000)
+						if (StoredBattleState.CurrentScreenPos > 900000)
 						{
-							StoredBattleState.CurrentScreenPos = 1080000;
+							StoredBattleState.CurrentScreenPos = 900000;
 						}
-						else if (StoredBattleState.CurrentScreenPos < -1080000)
+						else if (StoredBattleState.CurrentScreenPos < -900000)
 						{
-							StoredBattleState.CurrentScreenPos = -1080000;
+							StoredBattleState.CurrentScreenPos = -900000;
 						}
 					}
 				}

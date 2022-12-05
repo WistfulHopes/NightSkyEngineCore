@@ -162,9 +162,9 @@ public:
 	//input buffer
 	InputBuffer InputBuffer;
 
-	//chain cancels (copied from std::vector to static array)
+	//chain cancels
 	int32_t ChainCancelOptionsInternal[CancelArraySize];
-	//whiff cancels (copied from std::vector to static array)
+	//whiff cancels
     int32_t WhiffCancelOptionsInternal[CancelArraySize]; 
 	CString<64> BufferedStateName;
 	CString<64> StateName;

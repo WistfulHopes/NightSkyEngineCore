@@ -116,12 +116,12 @@ void BattleActor::Update()
 			if (Player->PlayerIndex == 0)
 			{
 				FacingRight = true;
-				PosX = -360000;
+				PosX = -300000;
 			}
 			else
 			{
 				FacingRight = false;
-				PosX = 360000;
+				PosX = 300000;
 			}
 		}
 	}
@@ -179,13 +179,13 @@ void BattleActor::Move()
 	}
 	if (ScreenCollisionActive)
 	{
-		if (PosX < -2160000)
+		if (PosX < -1800000)
 		{
-			PosX = -2160000;
+			PosX = -1800001;
 		}
-		else if (PosX > 2160000)
+		else if (PosX > 1800000)
 		{
-			PosX = 2160000;
+			PosX = 1800001;
 		}
 	}
 }
@@ -1920,7 +1920,7 @@ void BattleActor::LoadForRollback(unsigned char* Buffer)
 		}
 		if (strcmp(Player->ObjectStateNames[Index].GetString(), ObjectStateName.GetString()))
 		{
-			memcpy(ObjectState, Player->ObjectStates[Index], sizeof(State));
+			memcpy(ObjectState, Player->ObjectStates[Index], sizeof ObjectState);
 			ObjectState->ObjectParent = this;
 		}
 	}

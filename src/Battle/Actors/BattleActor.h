@@ -245,27 +245,27 @@ public:
 	int32_t AnimTime = -1;
 
 	//for spawning hit particles
-	int32_t HitPosX;
-	int32_t HitPosY;
+	int32_t HitPosX = 0;
+	int32_t HitPosY = 0;
 
 	bool DefaultCommonAction = true;
 
 	CollisionBox CollisionBoxes[CollisionArraySize]{};
 	
 	CString<64> ObjectStateName;
-	uint32_t ObjectID;
+	uint32_t ObjectID = 0;
 
 	//pointer to player. if this is not a player, it will point32_t to the owning player.
-	PlayerCharacter* Player; 
+	PlayerCharacter* Player = nullptr;
 
 	//anything past here isn't saved or loaded for rollback
-	int32_t ObjSyncEnd;
+	int32_t ObjSyncEnd = 0;
+
+	State* ObjectState;
 
 	int32_t ObjNumber;
 	
 	FighterGameState* GameState;
-
-	State* ObjectState; 
 
 protected:
 	//move object based on speed and inertia
