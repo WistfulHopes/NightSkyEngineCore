@@ -1515,7 +1515,7 @@ void PlayerCharacter::ResetForRound()
 	SpeedXPercent = 100;
 	SpeedXPercentPerFrame = false;
 	FacingRight = false;
-	ScreenCollisionActive = false;
+	ScreenCollisionActive = true;
 	StateVal1 = 0;
 	StateVal2 = 0;
 	StateVal3 = 0;

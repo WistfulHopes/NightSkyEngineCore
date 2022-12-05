@@ -174,13 +174,13 @@ void BattleActor::Move()
 	}
 	if (ScreenCollisionActive)
 	{
-		if (PosX < -1200000)
+		if (PosX < -2160000)
 		{
-			PosX = -1200001;
+			PosX = -2160000;
 		}
-		else if (PosX > 1200000)
+		else if (PosX > 2160000)
 		{
-			PosX = 1200001;
+			PosX = 2160000;
 		}
 	}
 }
