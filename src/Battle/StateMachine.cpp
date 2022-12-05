@@ -45,7 +45,7 @@ bool StateMachine::SetState(CString<64> Name)
 	if (IsCurrentState(Name))
 	{
 		CurrentState = States[Index];
-		return true;
+		return false;
 	}
 	
 	CurrentState->OnExit();
