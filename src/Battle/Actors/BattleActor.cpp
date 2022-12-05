@@ -1,6 +1,5 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include <cstdlib>
 #include "BattleActor.h"
 #include "FighterGameState.h"
 #include "PlayerCharacter.h"

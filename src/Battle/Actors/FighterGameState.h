@@ -120,7 +120,7 @@ private:
 	void RoundInit();
 
 public:
-	void UpdateRemoteInput(int32_t RemoteInput, int32_t InFrame, int32_t InFrameAdvantage); //when remote inputs are received, update inputs
+	void UpdateRemoteInput(int32_t RemoteInput); //when remote inputs are received, update inputs
 	void SortObjects();
 
 	void TickGameState(); //rollback operations, then updates game state

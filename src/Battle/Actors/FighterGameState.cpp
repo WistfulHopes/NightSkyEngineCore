@@ -28,7 +28,7 @@ void FighterGameState::UpdateLocalInput()
 	LocalInputs[1] = GetLocalInputs(1);
 }
 
-void FighterGameState::UpdateRemoteInput(int32_t RemoteInput, int32_t InFrame, int32_t InFrameAdvantage)
+void FighterGameState::UpdateRemoteInput(int32_t RemoteInput)
 {
 	if (CurrentNetMode == Player1)
 	{

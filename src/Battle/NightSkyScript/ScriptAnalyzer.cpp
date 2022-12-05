@@ -598,7 +598,7 @@ void ScriptAnalyzer::Analyze(char *Addr, BattleActor *Actor)
                     {
                         if (!strcmp(Addr + 4, State->Name.GetString()))
                         {
-                            dynamic_cast<ScriptState*>(StateToModify)->ParentState = dynamic_cast<ScriptState*>(State);
+                            reinterpret_cast<ScriptState*>(StateToModify)->ParentState = reinterpret_cast<ScriptState*>(State);
                             break;
                         }
                     }

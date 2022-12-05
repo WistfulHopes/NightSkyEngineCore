@@ -9,7 +9,7 @@ enum BoxType
 
 struct CollisionBox
 {
-	EBoxType Type;
+	BoxType Type;
 	int PosX;
 	int PosY;
 	int SizeX;

@@ -3,7 +3,6 @@
 #include "../../CString.h"
 #include "../CollisionBox.h"
 #include <cstdint>
-#include <vector>
 
 #pragma pack (push, 1)
 
@@ -216,6 +215,8 @@ protected:
 	bool ScreenCollisionActive = false;
 	bool PushCollisionActive = false;
 
+public:
+	//script values stored here
 	int32_t StateVal1 = 0;
 	int32_t StateVal2 = 0;
 	int32_t StateVal3 = 0;
@@ -224,10 +225,8 @@ protected:
 	int32_t StateVal6 = 0;
 	int32_t StateVal7 = 0;
 	int32_t StateVal8 = 0;
-
-public:	
-	//script values stored here
 	int32_t StoredRegister = 0;
+	
 	bool FacingRight = true;
 	int32_t MiscFlags = 0;
 	//disabled if not player
