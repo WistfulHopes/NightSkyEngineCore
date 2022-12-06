@@ -3,6 +3,8 @@
 #include "../../CString.h"
 #include "../CollisionBox.h"
 #include <cstdint>
+#include <cstdio>
+#include <functional>
 
 #pragma pack (push, 1)
 
