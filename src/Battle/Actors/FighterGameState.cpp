@@ -567,7 +567,7 @@ void FighterGameState::SetWallCollision()
 	{
 		if (Players[i] != nullptr)
 		{
-			if (Players[i]->IsOnScreen)
+			if (Players[i]->IsOnScreen && Players[i]->PushCollisionActive)
 			{
 				Players[i]->TouchingWall = true;
 				if (Players[i]->GetInternalValue(VAL_PosX) > 900000 + StoredBattleState.CurrentScreenPos)

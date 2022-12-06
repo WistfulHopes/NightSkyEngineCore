@@ -214,9 +214,10 @@ protected:
 	int32_t SpeedXPercent = 100;
 	bool SpeedXPercentPerFrame = false;
 	bool ScreenCollisionActive = false;
-	bool PushCollisionActive = false;
 
 public:
+	bool PushCollisionActive = false;
+	
 	//script values stored here
 	int32_t StateVal1 = 0;
 	int32_t StateVal2 = 0;
