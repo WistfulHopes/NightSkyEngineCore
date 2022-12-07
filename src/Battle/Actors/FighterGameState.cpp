@@ -1,5 +1,6 @@
 #include "FighterGameState.h"
 #include "InputDevice.h"
+#include <cstdlib>
 
 void FighterGameState::TickGameState()
 {
@@ -12,7 +13,7 @@ void FighterGameState::TickGameState()
 int FighterGameState::GetLocalInputs(int Index)
 {
 	if (Index > 2) return 0;
-#ifndef ENGINE_API
+#ifdef RAYLIB_H
 	if (Index < 2)
 		if (IsGamepadAvailable(dynamic_cast<ControllerInputDevice*>(InputDevices[Index])->controller_id))
 			return InputDevices[Index]->GetInputs();

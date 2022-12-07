@@ -5,6 +5,7 @@
 #include "PlayerCharacter.h"
 #include "../State.h"
 #include "../../SpriteList.h"
+#include <cstdlib>
 
 BattleActor::BattleActor()
 {
