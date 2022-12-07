@@ -33,6 +33,10 @@ void BattleActor::InitObject()
 	Hitstop = 0;
 	if (PosY == 0 && PrevPosY != 0)
 		Gravity = 1900;
+	for (int32_t i = 0; i < CollisionArraySize; i++)
+	{
+		CollisionBoxes[i] = CollisionBox();
+	}
 	ObjectState->OnEnter();
 }
 
