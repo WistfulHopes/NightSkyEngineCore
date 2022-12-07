@@ -1838,6 +1838,7 @@ void BattleActor::ResetObject()
 	if (IsPlayer)
 		return;
 	DeactivateOnNextUpdate = false;
+	free(ObjectState);
 	IsActive = false;
 	PosX = 0;
 	PosY = 0;
