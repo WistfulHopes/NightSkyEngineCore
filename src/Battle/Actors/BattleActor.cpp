@@ -1843,6 +1843,7 @@ void BattleActor::ResetObject()
 		return;
 	DeactivateOnNextUpdate = false;
 	free(ObjectState);
+	ObjectState = nullptr;
 	IsActive = false;
 	PosX = 0;
 	PosY = 0;
