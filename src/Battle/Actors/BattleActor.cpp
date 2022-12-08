@@ -51,6 +51,7 @@ void BattleActor::Update()
 	{
 		InitObject();
 		InitOnNextFrame = false;
+		return;
 	}
 
 	L = PosX - PushWidth / 2; //sets pushboxes
@@ -1842,8 +1843,6 @@ void BattleActor::ResetObject()
 	if (IsPlayer)
 		return;
 	DeactivateOnNextUpdate = false;
-	delete ObjectState;
-	ObjectState = nullptr;
 	IsActive = false;
 	PosX = 0;
 	PosY = 0;
@@ -1926,6 +1925,8 @@ void BattleActor::LoadForRollback(unsigned char* Buffer)
 		}
 		if (strcmp(Player->ObjectStateNames[Index].GetString(), ObjectStateName.GetString()))
 		{
+		    if (ObjectState != nullptr)
+		    	delete ObjectState;
 			ObjectState = Player->ObjectStates[Index]->Clone();
 			ObjectState->ObjectParent = this;
 		}

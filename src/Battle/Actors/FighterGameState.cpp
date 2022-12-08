@@ -436,6 +436,8 @@ BattleActor* FighterGameState::AddBattleActor(State* InState, int PosX, int PosY
 	{
 		if (!Objects[i]->IsActive)
 		{
+		    if (Objects[i]->ObjectState != nullptr)
+		    	delete Objects[i]->ObjectState;
 			Objects[i]->ObjectState = InState->Clone();
 			Objects[i]->ObjectState->ObjectParent = Objects[i];
 			Objects[i]->IsActive = true;
