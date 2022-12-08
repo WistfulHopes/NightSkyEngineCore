@@ -93,6 +93,7 @@ void BattleActor::Update()
 	Move(); //handle movement
 	
 	AnimTime++; //increments counters
+	SkelAnimTime++; //increments counters
 	ActionTime++;
 	ActiveTime++;
 	
@@ -1892,6 +1893,7 @@ void BattleActor::ResetObject()
 	HitEffectName.SetString("");
 	SocketName.SetString("");
 	AnimTime = -1;
+	SkelAnimTime = -1;
 	HitPosX = 0;
 	HitPosY = 0;
 	DefaultCommonAction = true;

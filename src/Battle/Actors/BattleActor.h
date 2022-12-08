@@ -246,6 +246,8 @@ public:
 	
 	//current animation time
 	int32_t AnimTime = -1;
+	//for skeletal animation
+	int32_t SkelAnimTime = -1;
 
 	//for spawning hit particles
 	int32_t HitPosX = 0;

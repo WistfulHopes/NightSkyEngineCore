@@ -180,6 +180,7 @@ void PlayerCharacter::Update()
 		BattleHudVisibility(true);
 		StateMachine.CurrentState->OnSuperFreezeEnd();
 		AnimTime++;
+		SkelAnimTime++;
 	}
 	
 	if (Hitstop > 0)
@@ -1363,6 +1364,7 @@ void PlayerCharacter::OnStateChange()
 	BAirDashCancel = false;
 	HasHit = false;
 	AnimTime = -1; //reset anim time
+	SkelAnimTime = -1; //reset anim time
 	ActionTime = -1; //reset action time
 	DefaultLandingAction = true;
 	DefaultCommonAction = true;
@@ -1515,6 +1517,7 @@ void PlayerCharacter::ResetForRound()
 	CelNameInternal.SetString("");
 	HitEffectName.SetString("");
 	AnimTime = -1;
+	SkelAnimTime = -1;
 	HitPosX = 0;
 	HitPosY = 0;
 	ObjectID = 0;
