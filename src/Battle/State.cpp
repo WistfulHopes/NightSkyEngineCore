@@ -1,6 +1,11 @@
 #include "State.h"
 #include "Actors/PlayerCharacter.h"
 
+ScriptState* ScriptState::Clone()
+{
+    return new ScriptState(*this);
+}
+
 void ScriptState::OnEnter()
 {
     if (ParentState)

@@ -436,8 +436,7 @@ BattleActor* FighterGameState::AddBattleActor(State* InState, int PosX, int PosY
 	{
 		if (!Objects[i]->IsActive)
 		{
-			Objects[i]->ObjectState = (State*)malloc(sizeof InState);
-			memcpy(Objects[i]->ObjectState, InState, sizeof InState);
+			Objects[i]->ObjectState = InState->Clone();
 			Objects[i]->ObjectState->ObjectParent = Objects[i];
 			Objects[i]->IsActive = true;
 			Objects[i]->FacingRight = FacingRight;

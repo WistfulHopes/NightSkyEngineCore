@@ -1842,7 +1842,7 @@ void BattleActor::ResetObject()
 	if (IsPlayer)
 		return;
 	DeactivateOnNextUpdate = false;
-	free(ObjectState);
+	delete ObjectState;
 	ObjectState = nullptr;
 	IsActive = false;
 	PosX = 0;
@@ -1926,7 +1926,7 @@ void BattleActor::LoadForRollback(unsigned char* Buffer)
 		}
 		if (strcmp(Player->ObjectStateNames[Index].GetString(), ObjectStateName.GetString()))
 		{
-			memcpy(ObjectState, Player->ObjectStates[Index], sizeof ObjectState);
+			ObjectState = Player->ObjectStates[Index]->Clone();
 			ObjectState->ObjectParent = this;
 		}
 	}

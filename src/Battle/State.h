@@ -144,6 +144,7 @@ enum class StateCondition
 class State
 {
 public:
+	virtual State* Clone() = 0;
 	virtual ~State() = default;
 	PlayerCharacter* Parent;
 	BattleActor* ObjectParent;
@@ -184,6 +185,8 @@ struct ScriptBlockOffsets
 class ScriptState : public State
 {
 public:
+	virtual ScriptState* Clone() override;
+	
 	ScriptState* ParentState;
 	uint32_t OffsetAddress;
 	uint32_t Size;
