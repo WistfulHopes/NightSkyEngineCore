@@ -1892,6 +1892,8 @@ void BattleActor::ResetObject()
 	CelNameInternal.SetString("");
 	HitEffectName.SetString("");
 	SocketName.SetString("");
+	SocketObj = OBJ_Self;
+	SocketOffset = Vector(0, 0);
 	AnimTime = -1;
 	SkelAnimTime = -1;
 	HitPosX = 0;

@@ -176,8 +176,10 @@ class BattleActor
 public:
 	BattleActor();
 
-	virtual ~BattleActor() {}
-	
+	virtual ~BattleActor()
+	{
+	}
+
 	unsigned char ObjSync; //starting from this until ObjSyncEnd, everything is saved/loaded for rollback
 	bool IsActive = false;
 protected:
@@ -219,7 +221,7 @@ protected:
 
 public:
 	bool PushCollisionActive = false;
-	
+
 	//script values stored here
 	int32_t StateVal1 = 0;
 	int32_t StateVal2 = 0;
@@ -230,20 +232,22 @@ public:
 	int32_t StateVal7 = 0;
 	int32_t StateVal8 = 0;
 	int32_t StoredRegister = 0;
-	
+
 	bool FacingRight = true;
 	int32_t MiscFlags = 0;
 	//disabled if not player
 	bool IsPlayer = false;
 	int32_t SuperFreezeTime = -1;
-	
+
 	//cel name for internal use. copied from CelName CString<64>
 	CString<64> CelNameInternal;
 	//for hit effect overrides
-	CString<64> HitEffectName; 
+	CString<64> HitEffectName;
 	//for socket attachment
-	CString<64> SocketName; 
-	
+	CString<64> SocketName; //for skeletal meshes
+	ObjType SocketObj = OBJ_Self;
+	Vector SocketOffset = Vector(0, 0);
+
 	//current animation time
 	int32_t AnimTime = -1;
 	//for skeletal animation
@@ -256,7 +260,7 @@ public:
 	bool DefaultCommonAction = true;
 
 	CollisionBox CollisionBoxes[CollisionArraySize]{};
-	
+
 	CString<64> ObjectStateName;
 	uint32_t ObjectID = 0;
 
@@ -269,14 +273,14 @@ public:
 	State* ObjectState;
 
 	int32_t ObjNumber;
-	
+
 	FighterGameState* GameState;
 
 protected:
 	//move object based on speed and inertia
 	void Move();
 	//get boxes based on cel name
-	void GetBoxes(); 
+	void GetBoxes();
 
 public:
 	void SaveForRollback(unsigned char* Buffer);
@@ -292,16 +296,16 @@ public:
 	void HandleClashCollision(BattleActor* OtherObj);
 	//handles flip
 	void HandleFlip();
-	
+
 	virtual void LogForSyncTest(FILE* file);
 
 	//initializes the object. not for use with players.
 	void InitObject();
 	//updates the object. called every frame
 	virtual void Update();
-	
+
 	//script callable functions
-	
+
 	//gets internal value for script
 	int32_t GetInternalValue(InternalValue InternalValue, ObjType ObjType = OBJ_Self);
 	void SetInternalValue(InternalValue InternalValue, int32_t Val, ObjType ObjType = OBJ_Self);
