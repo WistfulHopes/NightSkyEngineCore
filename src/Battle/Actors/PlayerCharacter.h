@@ -158,9 +158,9 @@ public:
 	int32_t PlayerVal8 = 0;
 	
 	//state machine
-	StateMachine StateMachine;
+	StateMachine CurStateMachine;
 	//input buffer
-	InputBuffer InputBuffer;
+	InputBuffer CurInputBuffer;
 
 	//chain cancels
 	int32_t ChainCancelOptionsInternal[CancelArraySize];
@@ -368,5 +368,5 @@ public:
 	void AddBattleActorToStorage(BattleActor* InActor, int Index);
 };
 
-#define SIZEOF_PLAYERCHARACTER offsetof(PlayerCharacter, PlayerSyncEnd) - offsetof(PlayerCharacter, PlayerSync)
+#define SIZEOF_PLAYERCHARACTER offsetof(PlayerCharacter, PlayerCharacter::PlayerSyncEnd) - offsetof(PlayerCharacter, PlayerCharacter::PlayerSync)
 #pragma pack(pop)

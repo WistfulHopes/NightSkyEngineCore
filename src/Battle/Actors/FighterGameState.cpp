@@ -46,7 +46,7 @@ void FighterGameState::UpdateRemoteInput(int32_t RemoteInput)
 
 void FighterGameState::HandleRoundWin()
 {
-	if (StoredBattleState.RoundFormat < TwoVsTwo)
+	if (StoredBattleState.CurRoundFormat < TwoVsTwo)
 	{
 		if (Players[0]->CurrentHealth > 0 && Players[3]->CurrentHealth <= 0)
 		{
@@ -146,7 +146,7 @@ void FighterGameState::HandleRoundWin()
 
 void FighterGameState::HandleMatchWin()
 {
-	switch (StoredBattleState.RoundFormat)
+	switch (StoredBattleState.CurRoundFormat)
 	{
 	case FirstToOne:
 		if (StoredBattleState.P1RoundsWon > 0 && StoredBattleState.P2RoundsWon < StoredBattleState.P1RoundsWon)
@@ -283,7 +283,7 @@ void FighterGameState::Init()
 		SortedObjects[i + 6] = Objects[i];
 	}
 
-	StoredBattleState.RoundFormat = FirstToTwo;
+	StoredBattleState.CurRoundFormat = FirstToTwo;
 	StoredBattleState.RoundTimer = 99 * 60;
 }
 

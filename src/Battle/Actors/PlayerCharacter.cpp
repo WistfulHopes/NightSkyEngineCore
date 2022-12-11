@@ -16,7 +16,7 @@ PlayerCharacter::PlayerCharacter()
 	ObjAnalyzer = new ScriptAnalyzer();
 	CommonAnalyzer = new ScriptAnalyzer();
 	Player = this;
-	StateMachine.Parent = this;
+	CurStateMachine.Parent = this;
 	ScreenCollisionActive = true;
 	PushCollisionActive = true;
 	FWalkSpeed = 7800;
@@ -92,7 +92,7 @@ void PlayerCharacter::InitStates()
 		Subroutine->Parent = this;
 		reinterpret_cast<ScriptSubroutine*>(Subroutine)->CommonSubroutine = true;
 	}
-	CharaAnalyzer->Initialize(CharaScript, CharaScriptLength, &StateMachine.States, &Subroutines);
+	CharaAnalyzer->Initialize(CharaScript, CharaScriptLength, &CurStateMachine.States, &Subroutines);
 	ObjAnalyzer->Initialize(ObjectScript, ObjectScriptLength, &ObjectStates, &Subroutines);
 	for (auto Subroutine : Subroutines)
 	{
@@ -103,11 +103,11 @@ void PlayerCharacter::InitStates()
 	{
 		ObjectStateNames.push_back(State->Name);
 	}
-	StateMachine.Initialize();
-	StateMachine.ParentStates(CommonStates);
+	CurStateMachine.Initialize();
+	CurStateMachine.ParentStates(CommonStates);
 	CallSubroutine("CmnMatchInit");
 	CallSubroutine("MatchInit");
-	StateMachine.CurrentState->OnEnter();
+	CurStateMachine.CurrentState->OnEnter();
 }
 
 void PlayerCharacter::Update()
@@ -143,7 +143,7 @@ void PlayerCharacter::Update()
 	}
 	if (IsThrowLock)
 	{
-		InputBuffer.Tick(Inputs);
+		CurInputBuffer.Tick(Inputs);
 		HandleStateMachine(true); //handle state transitions
 		if (ThrowTechTimer > 0)
 		{
@@ -171,21 +171,21 @@ void PlayerCharacter::Update()
 	
 	if (SuperFreezeTime > 0)
 	{
-		InputBuffer.Tick(Inputs);
+		CurInputBuffer.Tick(Inputs);
 		HandleStateMachine(true); //handle state transitions
 		return;
 	}
 	if (SuperFreezeTime == 0)
 	{
 		BattleHudVisibility(true);
-		StateMachine.CurrentState->OnSuperFreezeEnd();
+		CurStateMachine.CurrentState->OnSuperFreezeEnd();
 		AnimTime++;
 		SkelAnimTime++;
 	}
 	
 	if (Hitstop > 0)
 	{
-		InputBuffer.Tick(Inputs);
+		CurInputBuffer.Tick(Inputs);
 		HandleStateMachine(true); //handle state transitions
 		return;
 	}
@@ -200,20 +200,20 @@ void PlayerCharacter::Update()
 	if (ComboCounter > 0)
 		ComboTimer++;
 		
-	if (StateMachine.CurrentState->Type == StateType::ForwardWalk)
+	if (CurStateMachine.CurrentState->Type == StateType::ForwardWalk)
 		AddMeter(ForwardWalkMeterGain);
-	else if (StateMachine.CurrentState->Type == StateType::ForwardJump)
+	else if (CurStateMachine.CurrentState->Type == StateType::ForwardJump)
 		AddMeter(ForwardJumpMeterGain);
-	if (StateMachine.CurrentState->Type == StateType::ForwardDash)
+	if (CurStateMachine.CurrentState->Type == StateType::ForwardDash)
 		AddMeter(ForwardDashMeterGain);
-	else if (StateMachine.CurrentState->Type == StateType::ForwardAirDash)
+	else if (CurStateMachine.CurrentState->Type == StateType::ForwardAirDash)
 		AddMeter(ForwardAirDashMeterGain);
 	MeterCooldownTimer--;
 	
 	if (!RoundWinInputLock)
-		InputBuffer.Tick(Inputs);
+		CurInputBuffer.Tick(Inputs);
 	else
-		InputBuffer.Tick(InputNeutral);
+		CurInputBuffer.Tick(InputNeutral);
 	
 	AirDashTimer--;
 	AirDashNoAttackTime--;
@@ -242,19 +242,19 @@ void PlayerCharacter::Update()
 	if (Untech == 0 && !IsKnockedDown && !IsDead)
 		EnableState(ENB_Tech);
 
-	if (StateMachine.CurrentState->Type == StateType::Tech)
+	if (CurStateMachine.CurrentState->Type == StateType::Tech)
 	{
 		HasBeenOTG = 0;
 		CurrentWallBounceEffect = WallBounceEffect();
 		CurrentGroundBounceEffect = GroundBounceEffect();
 	}
 	
-	if (StateMachine.CurrentState->Type == StateType::Hitstun && PosY <= 0 && PrevPosY > 0)
+	if (CurStateMachine.CurrentState->Type == StateType::Hitstun && PosY <= 0 && PrevPosY > 0)
 	{
 		HaltMomentum();
-		if (!strcmp(StateMachine.CurrentState->Name.GetString(), "BLaunch") || !strcmp(StateMachine.CurrentState->Name.GetString(), "Blowback"))
+		if (!strcmp(CurStateMachine.CurrentState->Name.GetString(), "BLaunch") || !strcmp(CurStateMachine.CurrentState->Name.GetString(), "Blowback"))
 			JumpToState("FaceUpBounce");
-		else if (!strcmp(StateMachine.CurrentState->Name.GetString(), "FLaunch"))
+		else if (!strcmp(CurStateMachine.CurrentState->Name.GetString(), "FLaunch"))
 			JumpToState("FaceDownBounce");
 	}
 
@@ -269,13 +269,13 @@ void PlayerCharacter::Update()
 		}
 	}
 
-	if (StateMachine.CurrentState->Type != StateType::Hitstun)
+	if (CurStateMachine.CurrentState->Type != StateType::Hitstun)
 	{
 		KnockdownTime = -1;
 		IsKnockedDown = false;
 	}
 
-	if (KnockdownTime < 0 && Blockstun < 0 && (Untech < 0 && StateMachine.CurrentState->Type != StateType::Hitstun) && Hitstun < 0)
+	if (KnockdownTime < 0 && Blockstun < 0 && (Untech < 0 && CurStateMachine.CurrentState->Type != StateType::Hitstun) && Hitstun < 0)
 		IsStunned = false;
 
 	if (KnockdownTime == 0 && PosY <= 0 && !IsDead)
@@ -283,9 +283,9 @@ void PlayerCharacter::Update()
 		Enemy->ComboCounter = 0;
 		Enemy->ComboTimer = 0;
 		HasBeenOTG = 0;
-		if (!strcmp(StateMachine.CurrentState->Name.GetString(), "FaceDown") || !strcmp(StateMachine.CurrentState->Name.GetString(), "FaceDownBounce"))
+		if (!strcmp(CurStateMachine.CurrentState->Name.GetString(), "FaceDown") || !strcmp(CurStateMachine.CurrentState->Name.GetString(), "FaceDownBounce"))
 			JumpToState("WakeUpFaceDown");
-		else if (!strcmp(StateMachine.CurrentState->Name.GetString(), "FaceUp") || !strcmp(StateMachine.CurrentState->Name.GetString(), "FaceUpBounce"))
+		else if (!strcmp(CurStateMachine.CurrentState->Name.GetString(), "FaceUp") || !strcmp(CurStateMachine.CurrentState->Name.GetString(), "FaceUpBounce"))
 			JumpToState("WakeUpFaceUp");
 		TotalProration = 10000;
 	}
@@ -321,72 +321,72 @@ void PlayerCharacter::Update()
 		}
 		else
 		{
-			StateMachine.CurrentState->OnLanding();
+			CurStateMachine.CurrentState->OnLanding();
 		}
 		CreateCommonParticle("cmn_jumpland_smoke", POS_Player, Vector(0, 0), 0);
 		HandleGroundBounce();
 	}
 	HandleThrowCollision();
 	if (Hitstop != 0)
-		StateMachine.Tick(0.0166666); //update current state
+		CurStateMachine.Tick(0.0166666); //update current state
 
 	HandleStateMachine(false); //handle state transitions
 }
 
 void PlayerCharacter::HandleStateMachine(bool Buffer)
 {
-	for (int i = StateMachine.States.size() - 1; i >= 0; i--)
+	for (int i = CurStateMachine.States.size() - 1; i >= 0; i--)
 	{
-        if (!(CheckStateEnabled(StateMachine.States[i]->Type) && !StateMachine.States[i]->IsFollowupState
-            || FindChainCancelOption(StateMachine.States[i]->Name.GetString())
-            || FindWhiffCancelOption(StateMachine.States[i]->Name.GetString())
-            || CheckKaraCancel(StateMachine.States[i]->Type) && !StateMachine.States[i]->IsFollowupState
+        if (!(CheckStateEnabled(CurStateMachine.States[i]->Type) && !CurStateMachine.States[i]->IsFollowupState
+            || FindChainCancelOption(CurStateMachine.States[i]->Name.GetString())
+            || FindWhiffCancelOption(CurStateMachine.States[i]->Name.GetString())
+            || CheckKaraCancel(CurStateMachine.States[i]->Type) && !CurStateMachine.States[i]->IsFollowupState
             )) //check if the state is enabled, continue if not
         {
             continue;
         }
-		if (CheckObjectPreventingState(StateMachine.States[i]->ObjectID)) //check if an object is preventing state entry, continue if so
+		if (CheckObjectPreventingState(CurStateMachine.States[i]->ObjectID)) //check if an object is preventing state entry, continue if so
 		{
 			continue;
 		}
         //check current character state against entry state condition, continue if not entry state
-		if (!StateMachine.CheckStateEntryCondition(StateMachine.States[i]->StateEntryState, CurrentActionFlags))
+		if (!CurStateMachine.CheckStateEntryCondition(CurStateMachine.States[i]->StateEntryState, CurrentActionFlags))
         {
             continue;
         }
-		if (StateMachine.States[i]->StateConditions.size() != 0) //only check state conditions if there are any
+		if (CurStateMachine.States[i]->StateConditions.size() != 0) //only check state conditions if there are any
 		{
-			for (int j = 0; j < StateMachine.States[i]->StateConditions.size(); j++) //iterate over state conditions
+			for (int j = 0; j < CurStateMachine.States[i]->StateConditions.size(); j++) //iterate over state conditions
 			{
-                if (!(HandleStateCondition(StateMachine.States[i]->StateConditions[j]))) //check state condition
+                if (!(HandleStateCondition(CurStateMachine.States[i]->StateConditions[j]))) //check state condition
                 {
                     break;
                 }
-                if (!(j == StateMachine.States[i]->StateConditions.size() - 1)) //have all conditions been met?
+                if (!(j == CurStateMachine.States[i]->StateConditions.size() - 1)) //have all conditions been met?
                 {
                     continue;
                 }
-				for (int v = 0; v < StateMachine.States[i]->InputConditions.size(); v++) //iterate over input conditions
+				for (int v = 0; v < CurStateMachine.States[i]->InputConditions.size(); v++) //iterate over input conditions
 				{
 					//check input condition against input buffer, if not met break.
-                    if (!InputBuffer.CheckInputCondition(StateMachine.States[i]->InputConditions[v]))
+                    if (!CurInputBuffer.CheckInputCondition(CurStateMachine.States[i]->InputConditions[v]))
                     {
                         break;
                     }
-					if (v == StateMachine.States[i]->InputConditions.size() - 1) //have all conditions been met?
+					if (v == CurStateMachine.States[i]->InputConditions.size() - 1) //have all conditions been met?
 					{
-						if (FindChainCancelOption(StateMachine.States[i]->Name.GetString())
-							|| FindWhiffCancelOption(StateMachine.States[i]->Name.GetString())) //if cancel option, allow resetting state
+						if (FindChainCancelOption(CurStateMachine.States[i]->Name.GetString())
+							|| FindWhiffCancelOption(CurStateMachine.States[i]->Name.GetString())) //if cancel option, allow resetting state
 						{
 							if (Buffer)
 							{
-								BufferedStateName.SetString(StateMachine.States[i]->Name.GetString());
+								BufferedStateName.SetString(CurStateMachine.States[i]->Name.GetString());
 								return;
 							}
-							if (StateMachine.ForceSetState(StateMachine.States[i]->Name)) //if state set successful...
+							if (CurStateMachine.ForceSetState(CurStateMachine.States[i]->Name)) //if state set successful...
 							{
-								StateName.SetString(StateMachine.States[i]->Name.GetString());
-								switch (StateMachine.States[i]->StateEntryState)
+								StateName.SetString(CurStateMachine.States[i]->Name.GetString());
+								switch (CurStateMachine.States[i]->StateEntryState)
 								{
 								case EntryState::Standing:
 									CurrentActionFlags = ACT_Standing;
@@ -407,13 +407,13 @@ void PlayerCharacter::HandleStateMachine(bool Buffer)
 						{
 							if (Buffer)
 							{
-								BufferedStateName.SetString(StateMachine.States[i]->Name.GetString());
+								BufferedStateName.SetString(CurStateMachine.States[i]->Name.GetString());
 								return;
 							}
-							if (StateMachine.SetState(StateMachine.States[i]->Name)) //if state set successful...
+							if (CurStateMachine.SetState(CurStateMachine.States[i]->Name)) //if state set successful...
 							{
-								StateName.SetString(StateMachine.States[i]->Name.GetString());
-								switch (StateMachine.States[i]->StateEntryState)
+								StateName.SetString(CurStateMachine.States[i]->Name.GetString());
+								switch (CurStateMachine.States[i]->StateEntryState)
 								{
 								case EntryState::Standing:
 									CurrentActionFlags = ACT_Standing;
@@ -432,17 +432,17 @@ void PlayerCharacter::HandleStateMachine(bool Buffer)
 						}
 					}
 				}
-				if (StateMachine.States[i]->InputConditions.size() == 0) //if no input condtions, set state
+				if (CurStateMachine.States[i]->InputConditions.size() == 0) //if no input condtions, set state
 				{
 					if (Buffer)
 					{
-						BufferedStateName.SetString(StateMachine.States[i]->Name.GetString());
+						BufferedStateName.SetString(CurStateMachine.States[i]->Name.GetString());
 						return;
 					}
-					if (StateMachine.SetState(StateMachine.States[i]->Name)) //if state set successful...
+					if (CurStateMachine.SetState(CurStateMachine.States[i]->Name)) //if state set successful...
 					{
-						StateName.SetString(StateMachine.States[i]->Name.GetString());
-						switch (StateMachine.States[i]->StateEntryState)
+						StateName.SetString(CurStateMachine.States[i]->Name.GetString());
+						switch (CurStateMachine.States[i]->StateEntryState)
 						{
 						case EntryState::Standing:
 							CurrentActionFlags = ACT_Standing;
@@ -464,27 +464,27 @@ void PlayerCharacter::HandleStateMachine(bool Buffer)
 		}
 		else
 		{
-			for (int v = 0; v < StateMachine.States[i]->InputConditions.size(); v++) //iterate over input conditions
+			for (int v = 0; v < CurStateMachine.States[i]->InputConditions.size(); v++) //iterate over input conditions
 			{
 				//check input condition against input buffer, if not met break.
-				if (!InputBuffer.CheckInputCondition(StateMachine.States[i]->InputConditions[v]))
+				if (!CurInputBuffer.CheckInputCondition(CurStateMachine.States[i]->InputConditions[v]))
 				{
 					break;
 				}
-				if (v == StateMachine.States[i]->InputConditions.size() - 1) //have all conditions been met?
+				if (v == CurStateMachine.States[i]->InputConditions.size() - 1) //have all conditions been met?
 				{
-					if (FindChainCancelOption(StateMachine.States[i]->Name.GetString())
-						|| FindWhiffCancelOption(StateMachine.States[i]->Name.GetString())) //if cancel option, allow resetting state
+					if (FindChainCancelOption(CurStateMachine.States[i]->Name.GetString())
+						|| FindWhiffCancelOption(CurStateMachine.States[i]->Name.GetString())) //if cancel option, allow resetting state
 					{
 						if (Buffer)
 						{
-							BufferedStateName.SetString(StateMachine.States[i]->Name.GetString());
+							BufferedStateName.SetString(CurStateMachine.States[i]->Name.GetString());
 							return;
 						}
-						if (StateMachine.ForceSetState(StateMachine.States[i]->Name)) //if state set successful...
+						if (CurStateMachine.ForceSetState(CurStateMachine.States[i]->Name)) //if state set successful...
 						{
-							StateName.SetString(StateMachine.States[i]->Name.GetString());
-							switch (StateMachine.States[i]->StateEntryState)
+							StateName.SetString(CurStateMachine.States[i]->Name.GetString());
+							switch (CurStateMachine.States[i]->StateEntryState)
 							{
 							case EntryState::Standing:
 								CurrentActionFlags = ACT_Standing;
@@ -505,13 +505,13 @@ void PlayerCharacter::HandleStateMachine(bool Buffer)
 					{
 						if (Buffer)
 						{
-							BufferedStateName.SetString(StateMachine.States[i]->Name.GetString());
+							BufferedStateName.SetString(CurStateMachine.States[i]->Name.GetString());
 							return;
 						}
-						if (StateMachine.SetState(StateMachine.States[i]->Name)) //if state set successful...
+						if (CurStateMachine.SetState(CurStateMachine.States[i]->Name)) //if state set successful...
 						{
-							StateName.SetString(StateMachine.States[i]->Name.GetString());
-							switch (StateMachine.States[i]->StateEntryState)
+							StateName.SetString(CurStateMachine.States[i]->Name.GetString());
+							switch (CurStateMachine.States[i]->StateEntryState)
 							{
 							case EntryState::Standing:
 								CurrentActionFlags = ACT_Standing;
@@ -530,17 +530,17 @@ void PlayerCharacter::HandleStateMachine(bool Buffer)
 					}
 				}
 			}
-			if (StateMachine.States[i]->InputConditions.size() == 0) //if no input condtions, set state
+			if (CurStateMachine.States[i]->InputConditions.size() == 0) //if no input condtions, set state
 			{
 				if (Buffer)
 				{
-					BufferedStateName.SetString(StateMachine.States[i]->Name.GetString());
+					BufferedStateName.SetString(CurStateMachine.States[i]->Name.GetString());
 					return;
 				}
-				if (StateMachine.SetState(StateMachine.States[i]->Name)) //if state set successful...
+				if (CurStateMachine.SetState(CurStateMachine.States[i]->Name)) //if state set successful...
 				{
-					StateName.SetString(StateMachine.States[i]->Name.GetString());
-					switch (StateMachine.States[i]->StateEntryState)
+					StateName.SetString(CurStateMachine.States[i]->Name.GetString());
+					switch (CurStateMachine.States[i]->StateEntryState)
 					{
 					case EntryState::Standing:
 						CurrentActionFlags = ACT_Standing;
@@ -569,10 +569,10 @@ void PlayerCharacter::HandleBufferedState()
 		if (FindChainCancelOption(BufferedStateName.GetString())
 			|| FindWhiffCancelOption(BufferedStateName.GetString())) //if cancel option, allow resetting state
 		{
-			if (StateMachine.ForceSetState(BufferedStateName))
+			if (CurStateMachine.ForceSetState(BufferedStateName))
 			{
 				StateName.SetString(BufferedStateName.GetString());
-				switch (StateMachine.CurrentState->StateEntryState)
+				switch (CurStateMachine.CurrentState->StateEntryState)
 				{
 				case EntryState::Standing:
 					CurrentActionFlags = ACT_Standing;
@@ -591,10 +591,10 @@ void PlayerCharacter::HandleBufferedState()
 		}
 		else
 		{
-			if (StateMachine.SetState(BufferedStateName))
+			if (CurStateMachine.SetState(BufferedStateName))
 			{
 				StateName.SetString(BufferedStateName.GetString());
-				switch (StateMachine.CurrentState->StateEntryState)
+				switch (CurStateMachine.CurrentState->StateEntryState)
 				{
 				case EntryState::Standing:
 					CurrentActionFlags = ACT_Standing;
@@ -621,7 +621,7 @@ void PlayerCharacter::SetActionFlags(ActionFlags ActionFlag)
 
 void PlayerCharacter::AddState(CString<64> Name, State* State)
 {
-	StateMachine.AddState(Name, State);
+	CurStateMachine.AddState(Name, State);
 }
 
 void PlayerCharacter::AddSubroutine(CString<64> Name, Subroutine* Subroutine)
@@ -683,11 +683,11 @@ void PlayerCharacter::JumpToState(char* NewName)
 {
 	CString<64> Name;
 	Name.SetString(NewName);
-	if (StateMachine.ForceSetState(Name))
+	if (CurStateMachine.ForceSetState(Name))
 		StateName.SetString(NewName);
-	if (StateMachine.CurrentState != nullptr)
+	if (CurStateMachine.CurrentState != nullptr)
 	{
-		switch (StateMachine.CurrentState->StateEntryState)
+		switch (CurStateMachine.CurrentState->StateEntryState)
 		{
 		case EntryState::Standing:
 			CurrentActionFlags = ACT_Standing;
@@ -705,7 +705,7 @@ void PlayerCharacter::JumpToState(char* NewName)
 
 CString<64> PlayerCharacter::GetCurrentStateName()
 {
-	return StateMachine.CurrentState->Name;
+	return CurStateMachine.CurrentState->Name;
 }
 
 int32_t PlayerCharacter::GetLoopCount()
@@ -951,7 +951,7 @@ void PlayerCharacter::SetAirDashTimer(bool IsForward)
 
 bool PlayerCharacter::CheckInput(InputCondition Input)
 {
-	return InputBuffer.CheckInputCondition(Input);
+	return CurInputBuffer.CheckInputCondition(Input);
 }
 
 void PlayerCharacter::EnableAttacks()
@@ -1281,7 +1281,7 @@ void PlayerCharacter::AddChainCancelOption(CString<64> Option)
 	{
 		if (ChainCancelOptionsInternal[i] == -1)
 		{
-			ChainCancelOptionsInternal[i] = StateMachine.GetStateIndex(Option);
+			ChainCancelOptionsInternal[i] = CurStateMachine.GetStateIndex(Option);
 			break;
 		}
 	}
@@ -1293,7 +1293,7 @@ void PlayerCharacter::AddWhiffCancelOption(CString<64> Option)
 	{
 		if (WhiffCancelOptionsInternal[i] == -1)
 		{
-			WhiffCancelOptionsInternal[i] = StateMachine.GetStateIndex(Option);
+			WhiffCancelOptionsInternal[i] = CurStateMachine.GetStateIndex(Option);
 			break;
 		}
 	}
@@ -1307,7 +1307,7 @@ bool PlayerCharacter::FindChainCancelOption(char* Name)
 		{
 			CString<64> CName;
 			CName.SetString(Name);
-			if (ChainCancelOptionsInternal[i] == StateMachine.GetStateIndex(CName) && ChainCancelOptionsInternal[i] != -1)
+			if (ChainCancelOptionsInternal[i] == CurStateMachine.GetStateIndex(CName) && ChainCancelOptionsInternal[i] != -1)
 			{
 				return true;
 			}
@@ -1324,7 +1324,7 @@ bool PlayerCharacter::FindWhiffCancelOption(char* Name)
 		{
 			CString<64> CName;
 			CName.SetString(Name);
-			if (WhiffCancelOptionsInternal[i] == StateMachine.GetStateIndex(CName) && WhiffCancelOptionsInternal[i] != -1)
+			if (WhiffCancelOptionsInternal[i] == CurStateMachine.GetStateIndex(CName) && WhiffCancelOptionsInternal[i] != -1)
 			{
 				return true;
 			}
@@ -1336,12 +1336,12 @@ bool PlayerCharacter::FindWhiffCancelOption(char* Name)
 void PlayerCharacter::StartSuperFreeze(int Duration)
 {
 	GameState->StartSuperFreeze(Duration);
-	StateMachine.CurrentState->OnSuperFreeze();
+	CurStateMachine.CurrentState->OnSuperFreeze();
 }
 
 void PlayerCharacter::DisableLastInput()
 {
-	InputBuffer.InputDisabled[89] = InputBuffer.InputBufferInternal[89];
+	CurInputBuffer.InputDisabled[89] = CurInputBuffer.InputBufferInternal[89];
 }
 
 void PlayerCharacter::OnStateChange()
@@ -1441,15 +1441,15 @@ void PlayerCharacter::HandleThrowCollision()
 bool PlayerCharacter::CheckKaraCancel(StateType InStateType)
 {
 	//two checks: if it's an attack, and if the given state type has a higher or equal priority to the current state
-	if (InStateType == StateType::NormalThrow && StateMachine.CurrentState->Type < InStateType && StateMachine.CurrentState->Type >= StateType::NormalAttack && ActionTime < 3)
+	if (InStateType == StateType::NormalThrow && CurStateMachine.CurrentState->Type < InStateType && CurStateMachine.CurrentState->Type >= StateType::NormalAttack && ActionTime < 3)
 	{
 		return true;
 	}
-	if (InStateType == StateType::SpecialAttack && StateMachine.CurrentState->Type < InStateType && StateMachine.CurrentState->Type >= StateType::NormalAttack && ActionTime < 3)
+	if (InStateType == StateType::SpecialAttack && CurStateMachine.CurrentState->Type < InStateType && CurStateMachine.CurrentState->Type >= StateType::NormalAttack && ActionTime < 3)
 	{
 		return true;
 	}
-	if (InStateType == StateType::SuperAttack && StateMachine.CurrentState->Type < InStateType && StateMachine.CurrentState->Type >= StateType::NormalAttack && ActionTime < 3)
+	if (InStateType == StateType::SuperAttack && CurStateMachine.CurrentState->Type < InStateType && CurStateMachine.CurrentState->Type >= StateType::NormalAttack && ActionTime < 3)
 	{
 		return true;
 	}	
@@ -1586,7 +1586,7 @@ void PlayerCharacter::ResetForRound()
 	ReceivedHitAction = HACT_None;
 	ReceivedAttackLevel = -1;
 	for (int i = 0; i < 90; i++)
-		InputBuffer.InputBufferInternal[i] = InputNeutral;
+		CurInputBuffer.InputBufferInternal[i] = InputNeutral;
 	InitPlayer();
 }
 
@@ -1670,7 +1670,7 @@ void PlayerCharacter::LogForSyncTest(FILE* file)
 		fprintf(file,"\tSpecialCancel: %d\n", SpecialCancel);
 		fprintf(file,"\tSuperCancel: %d\n", SuperCancel);
 		fprintf(file,"\tBAirDashCancel: %d\n", DefaultLandingAction);
-		fprintf(file,"\tInputs: %d\n", InputBuffer.InputBufferInternal[89]);
+		fprintf(file,"\tInputs: %d\n", CurInputBuffer.InputBufferInternal[89]);
 		fprintf(file,"\tActionFlags: %d\n", CurrentActionFlags);
 		fprintf(file,"\tAirDashTimer: %d\n", AirDashTimer);
 		fprintf(file,"\tHitstun: %d\n", Hitstun);
@@ -1692,7 +1692,7 @@ void PlayerCharacter::LogForSyncTest(FILE* file)
 			WhiffCancelChecksum += WhiffCancelOptionsInternal[i];
 		}
 		fprintf(file,"\tChainCancelOptions: %d\n", WhiffCancelChecksum);
-		if (StateMachine.States.size() != 0)
+		if (CurStateMachine.States.size() != 0)
 			fprintf(file,"\tStateName: %s\n", StateName.GetString());
 		fprintf(file,"\tEnemy: %p\n", Enemy);
 	}

@@ -56,11 +56,11 @@ struct BattleState
 	
 	char BattleStateSyncEnd = 0;
 
-	RoundFormat RoundFormat = RoundFormat::FirstToTwo;
+	RoundFormat CurRoundFormat = RoundFormat::FirstToTwo;
 };
 #pragma pack(pop)
 
-#define SIZEOF_BATTLESTATE offsetof(BattleState, BattleStateSyncEnd) - offsetof(BattleState, BattleStateSync)
+#define SIZEOF_BATTLESTATE offsetof(BattleState, BattleState::BattleStateSyncEnd) - offsetof(BattleState, BattleState::BattleStateSync)
 
 #pragma pack (push, 1)
 struct RollbackData

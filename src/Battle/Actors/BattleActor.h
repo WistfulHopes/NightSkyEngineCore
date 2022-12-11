@@ -152,8 +152,8 @@ struct HitEffect
 	HitAction GroundHitAction = HACT_GroundNormal;
 	HitAction AirHitAction = HACT_AirNormal;
 	int32_t KnockdownTime = 25;
-	GroundBounceEffect GroundBounceEffect;
-	WallBounceEffect WallBounceEffect;
+	GroundBounceEffect CurGroundBounceEffect;
+	WallBounceEffect CurWallBounceEffect;
 	HitSFXType SFXType = HitSFXType::SFX_Punch;
 	HitVFXType VFXType = HitVFXType::VFX_Strike;
 	bool DeathCamOverride = false;
@@ -399,4 +399,4 @@ public:
 };
 #pragma pack(pop)
 
-#define SIZEOF_BATTLEACTOR offsetof(BattleActor, ObjSyncEnd) - offsetof(BattleActor, ObjSync)
+#define SIZEOF_BATTLEACTOR offsetof(BattleActor, BattleActor::ObjSyncEnd) - offsetof(BattleActor, BattleActor::ObjSync)

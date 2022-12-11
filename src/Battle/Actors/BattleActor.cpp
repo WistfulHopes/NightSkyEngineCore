@@ -664,7 +664,7 @@ void BattleActor::HandleHitCollision(PlayerCharacter* OtherChar)
 								HitPosY = Hitbox.PosY - CollisionDepthY / 2;
 								
 								if (IsPlayer)
-									Player->StateMachine.CurrentState->OnHitOrBlock();
+									Player->CurStateMachine.CurrentState->OnHitOrBlock();
 								else
 									ObjectState->OnHitOrBlock();
 								
@@ -720,7 +720,7 @@ void BattleActor::HandleHitCollision(PlayerCharacter* OtherChar)
 										}
 									}
 									if (IsPlayer)
-										Player->StateMachine.CurrentState->OnBlock();
+										Player->CurStateMachine.CurrentState->OnBlock();
 									else
 										ObjectState->OnBlock();
 									OtherChar->Hitstop = NormalHitEffect.Hitstop;
@@ -763,8 +763,8 @@ void BattleActor::HandleHitCollision(PlayerCharacter* OtherChar)
 											case HACT_AirFaceUp:
 											case HACT_AirVertical:
 											case HACT_AirFaceDown:
-												OtherChar->CurrentGroundBounceEffect = NormalHitEffect.GroundBounceEffect;
-												OtherChar->CurrentWallBounceEffect = NormalHitEffect.WallBounceEffect;
+												OtherChar->CurrentGroundBounceEffect = NormalHitEffect.CurGroundBounceEffect;
+												OtherChar->CurrentWallBounceEffect = NormalHitEffect.CurWallBounceEffect;
 												OtherChar->Untech = NormalHitEffect.Untech;
 												OtherChar->Hitstun = -1;
 												OtherChar->KnockdownTime = NormalHitEffect.KnockdownTime;
@@ -788,8 +788,8 @@ void BattleActor::HandleHitCollision(PlayerCharacter* OtherChar)
 												OtherChar->SetSpeedY(15000);
 												break;
 											case HACT_Blowback:
-												OtherChar->CurrentGroundBounceEffect = NormalHitEffect.GroundBounceEffect;
-												OtherChar->CurrentWallBounceEffect = NormalHitEffect.WallBounceEffect;
+												OtherChar->CurrentGroundBounceEffect = NormalHitEffect.CurGroundBounceEffect;
+												OtherChar->CurrentWallBounceEffect = NormalHitEffect.CurWallBounceEffect;
 												OtherChar->Untech = NormalHitEffect.Untech;
 												OtherChar->Hitstun = -1;
 												OtherChar->KnockdownTime = NormalHitEffect.KnockdownTime;
@@ -847,8 +847,8 @@ void BattleActor::HandleHitCollision(PlayerCharacter* OtherChar)
 											case HACT_AirFaceUp:
 											case HACT_AirVertical:
 											case HACT_AirFaceDown:
-												OtherChar->CurrentGroundBounceEffect = NormalHitEffect.GroundBounceEffect;
-												OtherChar->CurrentWallBounceEffect = NormalHitEffect.WallBounceEffect;
+												OtherChar->CurrentGroundBounceEffect = NormalHitEffect.CurGroundBounceEffect;
+												OtherChar->CurrentWallBounceEffect = NormalHitEffect.CurWallBounceEffect;
 												OtherChar->Untech = NormalHitEffect.Untech;
 												OtherChar->Hitstun = -1;
 												OtherChar->KnockdownTime = NormalHitEffect.KnockdownTime;
@@ -872,8 +872,8 @@ void BattleActor::HandleHitCollision(PlayerCharacter* OtherChar)
 												OtherChar->SetSpeedY(15000);
 												break;
 											case HACT_Blowback:
-												OtherChar->CurrentGroundBounceEffect = NormalHitEffect.GroundBounceEffect;
-												OtherChar->CurrentWallBounceEffect = NormalHitEffect.WallBounceEffect;
+												OtherChar->CurrentGroundBounceEffect = NormalHitEffect.CurGroundBounceEffect;
+												OtherChar->CurrentWallBounceEffect = NormalHitEffect.CurWallBounceEffect;
 												OtherChar->Untech = NormalHitEffect.Untech;
 												OtherChar->Hitstun = -1;
 												OtherChar->KnockdownTime = NormalHitEffect.KnockdownTime;
@@ -938,7 +938,7 @@ void BattleActor::HandleHitCollision(PlayerCharacter* OtherChar)
 								{
 									OtherChar->DeathCamOverride = NormalHitEffect.DeathCamOverride;
 									if (IsPlayer)
-										Player->StateMachine.CurrentState->OnHit();
+										Player->CurStateMachine.CurrentState->OnHit();
 									else
 										ObjectState->OnHit();
 									HandleHitEffect(OtherChar, NormalHitEffect);
@@ -947,7 +947,7 @@ void BattleActor::HandleHitCollision(PlayerCharacter* OtherChar)
 								{
 									OtherChar->DeathCamOverride = CounterHitEffect.DeathCamOverride;
 									if (IsPlayer)
-										Player->StateMachine.CurrentState->OnCounterHit();
+										Player->CurStateMachine.CurrentState->OnCounterHit();
 									else
 										ObjectState->OnCounterHit();
 									HandleHitEffect(OtherChar, CounterHitEffect);
@@ -1107,8 +1107,8 @@ void BattleActor::HandleHitEffect(PlayerCharacter* OtherChar, HitEffect InHitEff
 		case HACT_AirFaceUp:
 		case HACT_AirVertical:
 		case HACT_AirFaceDown:
-			OtherChar->CurrentGroundBounceEffect = InHitEffect.GroundBounceEffect;
-			OtherChar->CurrentWallBounceEffect = InHitEffect.WallBounceEffect;
+			OtherChar->CurrentGroundBounceEffect = InHitEffect.CurGroundBounceEffect;
+			OtherChar->CurrentWallBounceEffect = InHitEffect.CurWallBounceEffect;
 			OtherChar->Untech = FinalUntech;
 			OtherChar->Hitstun = -1;
 			OtherChar->KnockdownTime = InHitEffect.KnockdownTime;
@@ -1134,8 +1134,8 @@ void BattleActor::HandleHitEffect(PlayerCharacter* OtherChar, HitEffect InHitEff
 				OtherChar->PosY = 1;
 			break;
 		case HACT_Blowback:
-			OtherChar->CurrentGroundBounceEffect = InHitEffect.GroundBounceEffect;
-			OtherChar->CurrentWallBounceEffect = InHitEffect.WallBounceEffect;
+			OtherChar->CurrentGroundBounceEffect = InHitEffect.CurGroundBounceEffect;
+			OtherChar->CurrentWallBounceEffect = InHitEffect.CurWallBounceEffect;
 			OtherChar->Untech = FinalUntech;
 			OtherChar->Hitstun = -1;
 			OtherChar->KnockdownTime = InHitEffect.KnockdownTime;
@@ -1216,8 +1216,8 @@ void BattleActor::HandleHitEffect(PlayerCharacter* OtherChar, HitEffect InHitEff
 		case HACT_AirFaceUp:
 		case HACT_AirVertical:
 		case HACT_AirFaceDown:
-			OtherChar->CurrentGroundBounceEffect = InHitEffect.GroundBounceEffect;
-			OtherChar->CurrentWallBounceEffect = InHitEffect.WallBounceEffect;
+			OtherChar->CurrentGroundBounceEffect = InHitEffect.CurGroundBounceEffect;
+			OtherChar->CurrentWallBounceEffect = InHitEffect.CurWallBounceEffect;
 			OtherChar->Untech = FinalUntech;
 			OtherChar->Hitstun = -1;
 			OtherChar->KnockdownTime = InHitEffect.KnockdownTime;
@@ -1243,8 +1243,8 @@ void BattleActor::HandleHitEffect(PlayerCharacter* OtherChar, HitEffect InHitEff
 				OtherChar->PosY = 1;
 			break;
 		case HACT_Blowback:
-			OtherChar->CurrentGroundBounceEffect = InHitEffect.GroundBounceEffect;
-			OtherChar->CurrentWallBounceEffect = InHitEffect.WallBounceEffect;
+			OtherChar->CurrentGroundBounceEffect = InHitEffect.CurGroundBounceEffect;
+			OtherChar->CurrentWallBounceEffect = InHitEffect.CurWallBounceEffect;
 			OtherChar->Untech = FinalUntech;
 			OtherChar->Hitstun = -1;
 			OtherChar->KnockdownTime = InHitEffect.KnockdownTime;
@@ -1502,7 +1502,7 @@ void BattleActor::HandleHitEffect(PlayerCharacter* OtherChar, HitEffect InHitEff
 	}
 	else if (IsPlayer)
 	{
-		if (Player->StateMachine.CurrentState->Type == StateType::SpecialAttack || Player->StateMachine.CurrentState->Type == StateType::SuperAttack)
+		if (Player->CurStateMachine.CurrentState->Type == StateType::SpecialAttack || Player->CurStateMachine.CurrentState->Type == StateType::SuperAttack)
 		{
 			CreateCommonParticle("cmn_hit_sp", POS_Hit, Vector(0, 0), -InHitEffect.HitAngle);
 			if (InHitEffect.AttackLevel < 1)
@@ -1708,8 +1708,8 @@ void BattleActor::HandleClashCollision(BattleActor* OtherObj)
 								OtherObj->HitPosY = HitPosY;
 								Player->EnableAttacks();
 								OtherObj->Player->EnableAttacks();
-								OtherObj->Player->StateMachine.CurrentState->OnHitOrBlock();
-								Player->StateMachine.CurrentState->OnHitOrBlock();
+								OtherObj->Player->CurStateMachine.CurrentState->OnHitOrBlock();
+								Player->CurStateMachine.CurrentState->OnHitOrBlock();
 								return;
 							}
 							if (!IsPlayer && !OtherObj->IsPlayer)
@@ -1751,7 +1751,7 @@ void BattleActor::HandleFlip()
 		Inertia = -Inertia;
 		if (IsPlayer)
 		{
-			Player->InputBuffer.FlipInputsInBuffer();
+			Player->CurInputBuffer.FlipInputsInBuffer();
 			if (Player->CurrentActionFlags == ACT_Standing)
 				Player->JumpToState("StandFlip");
 			else if (Player->CurrentActionFlags == ACT_Crouching)

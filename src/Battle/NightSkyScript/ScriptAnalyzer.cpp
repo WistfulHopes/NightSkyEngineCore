@@ -174,8 +174,8 @@ void ScriptAnalyzer::Analyze(char *Addr, BattleActor *Actor)
         {
             CString<64> StateName;
             StateName.SetString(Addr + 4);
-            int32_t Index = Actor->Player->StateMachine.GetStateIndex(StateName);
-            StateToModify = Actor->Player->StateMachine.States[Index];
+            int32_t Index = Actor->Player->CurStateMachine.GetStateIndex(StateName);
+            StateToModify = Actor->Player->CurStateMachine.States[Index];
             break;
         }
         case EndStateDefine:
