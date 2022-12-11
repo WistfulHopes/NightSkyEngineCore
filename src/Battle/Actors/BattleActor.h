@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <functional>
+#include <cstddef>
 
 #pragma pack (push, 1)
 
