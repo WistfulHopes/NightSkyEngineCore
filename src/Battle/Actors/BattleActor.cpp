@@ -668,7 +668,7 @@ void BattleActor::HandleHitCollision(PlayerCharacter* OtherChar)
 								else
 									ObjectState->OnHitOrBlock();
 								
-								if ((OtherChar->CurrentEnableFlags & ENB_Block || OtherChar->Blockstun > 0) && OtherChar->IsCorrectBlock(NormalHitEffect.BlockType)) //check blocking
+								if ((OtherChar->CurrentEnableFlags & ENB_Block || OtherChar->Blockstun > 0) && OtherChar->IsCorrectBlock(NormalHitEffect.CurBlockType)) //check blocking
 								{
 									CreateCommonParticle("cmn_guard", POS_Hit, Vector(0, 0), -NormalHitEffect.HitAngle);
 									if (NormalHitEffect.AttackLevel < 1)

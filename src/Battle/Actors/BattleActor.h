@@ -133,7 +133,7 @@ struct GroundBounceEffect
 struct HitEffect
 {
 	int32_t AttackLevel = 0;
-	BlockType BlockType = BLK_Mid;
+	BlockType CurBlockType = BLK_Mid;
 	int32_t Hitstun = 0;
 	int32_t Blockstun = 0;
 	int32_t Untech = 0;
