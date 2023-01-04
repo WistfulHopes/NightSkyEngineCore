@@ -1697,6 +1697,8 @@ void BattleActor::HandleClashCollision(BattleActor* OtherObj)
 								CollisionDepthY = Hitbox.PosY - Hitbox.SizeY / 2 - (OtherHitbox.PosY + OtherHitbox.SizeY / 2);
 							HitPosX = Hitbox.PosX - CollisionDepthX / 2;
 							HitPosY = Hitbox.PosY - CollisionDepthY / 2;
+
+							CreateCommonParticle("cmn_hit_clash", POS_Hit, Vector(0, 0), 0);
 							
 							if (IsPlayer && OtherObj->IsPlayer)
 							{
