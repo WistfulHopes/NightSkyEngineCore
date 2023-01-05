@@ -8,6 +8,7 @@
 #include "../Subroutine.h"
 #pragma pack (push, 1)
 
+struct CollisionData;
 constexpr int CancelArraySize = 50;
 constexpr int MaxComponentCount = 80;
 
@@ -196,6 +197,8 @@ public:
 	uint32_t ObjectScriptLength;
 	ScriptAnalyzer* CommonAnalyzer;
 
+	std::vector<CollisionData*> ColData;
+	
 	std::vector<Subroutine*> CommonSubroutines;
 	std::vector<CString<64>> CommonSubroutineNames;
 	
@@ -203,7 +206,7 @@ public:
 	std::vector<CString<64>> SubroutineNames;
 
 	std::vector<State*> ObjectStates;
-	std::vector<CString<64>> ObjectStateNames; 
+	std::vector<CString<64>> ObjectStateNames;
 
 	std::vector<State*> CommonStates;
 	std::vector<CString<64>> CommonStateNames; 

@@ -6,6 +6,8 @@
 #include "../State.h"
 #include <cstdlib>
 
+#include "Data/CollisionData.h"
+
 BattleActor::BattleActor()
 {
 	ObjSync = 0;
@@ -92,8 +94,8 @@ void BattleActor::Update()
 	
 	Move(); //handle movement
 	
-	AnimTime++; //increments counters
-	SkelAnimTime++; //increments counters
+	AnimTime++; //increment counters
+	SkelAnimTime++;
 	ActionTime++;
 	ActiveTime++;
 	
@@ -600,7 +602,46 @@ void BattleActor::EnableFlip(bool Enabled)
 
 void BattleActor::GetBoxes()
 {
-	//reimplement for new engine
+	for (int i = 0; i < CollisionArraySize; i++)
+	{
+		CollisionBoxes[i].Type = BoxType::Hurtbox;
+		CollisionBoxes[i].PosX = -24000000;
+		CollisionBoxes[i].PosY = -24000000;
+		CollisionBoxes[i].SizeX = 0;
+		CollisionBoxes[i].SizeY = 0;
+	}
+	for (int i = 0; i < Player->ColData.size(); i++)
+	{
+		if (!strcmp(Player->ColData[i]->Name.GetString(), CelNameInternal.GetString()))
+		{
+			for (int j = 0; j < CollisionArraySize; j++)
+			{
+				if (Player->ColData[i]->BoxTypeCount > 0)
+				{
+					if (j < Player->ColData[i]->HurtCount)
+					{
+						CollisionBoxes[j].Type = BoxType::Hurtbox;
+						CollisionBoxes[j].PosX = Player->ColData[i]->Boxes[j].PosX;
+						CollisionBoxes[j].PosY = Player->ColData[i]->Boxes[j].PosY;
+						CollisionBoxes[j].SizeX = Player->ColData[i]->Boxes[j].SizeX;
+						CollisionBoxes[j].SizeY = Player->ColData[i]->Boxes[j].SizeY;
+					}
+				}
+				if (Player->ColData[i]->BoxTypeCount > 1)
+				{
+					if (j < Player->ColData[i]->HitCount + Player->ColData[i]->HurtCount)
+					{
+						CollisionBoxes[j].Type = BoxType::Hitbox;
+						CollisionBoxes[j].PosX = Player->ColData[i]->Boxes[j].PosX;
+						CollisionBoxes[j].PosY = Player->ColData[i]->Boxes[j].PosY;
+						CollisionBoxes[j].SizeX = Player->ColData[i]->Boxes[j].SizeX;
+						CollisionBoxes[j].SizeY = Player->ColData[i]->Boxes[j].SizeY;
+					}
+				}
+			}
+			return;
+		}
+	}
 }
 
 void BattleActor::HandleHitCollision(PlayerCharacter* OtherChar)
@@ -611,11 +652,11 @@ void BattleActor::HandleHitCollision(PlayerCharacter* OtherChar)
 		{
 			for (int32_t i = 0; i < CollisionArraySize; i++)
 			{
-				if (CollisionBoxes[i].Type == Hitbox)
+				if (CollisionBoxes[i].Type == BoxType::Hitbox)
 				{
 					for (int32_t j = 0; j < CollisionArraySize; j++)
 					{
-						if (OtherChar->CollisionBoxes[j].Type == Hurtbox)
+						if (OtherChar->CollisionBoxes[j].Type == BoxType::Hurtbox)
 						{
 							CollisionBox Hitbox = CollisionBoxes[i];
 
@@ -1651,11 +1692,12 @@ void BattleActor::HandleClashCollision(BattleActor* OtherObj)
 	{
 		for (int32_t i = 0; i < CollisionArraySize; i++)
 		{
+			BoxType Hitbox;
 			if (CollisionBoxes[i].Type == Hitbox)
 			{
 				for (int32_t j = 0; j < CollisionArraySize; j++)
 				{
-					if (OtherObj->CollisionBoxes[j].Type == Hitbox)
+					if (OtherObj->CollisionBoxes[j].Type == BoxType::Hitbox)
 					{
 						CollisionBox Hitbox = CollisionBoxes[i];
 
