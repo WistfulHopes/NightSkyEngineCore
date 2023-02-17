@@ -7,7 +7,6 @@
 
 PlayerCharacter::PlayerCharacter()
 {
-	InitPlayer();
 	for (int i = 0; i < 32; i++)
 		ChildBattleActors[i] = nullptr;
 	for (int i = 0; i < 16; i++)
@@ -66,8 +65,6 @@ PlayerCharacter::PlayerCharacter()
 void PlayerCharacter::InitPlayer()
 {
 	CurrentHealth = Health;
-	AttackProjectileAttribute = false;
-	DefaultLandingAction = true;
 	EnableAll();
 	EnableFlip(true);
 	StateName.SetString("Stand");
@@ -111,30 +108,11 @@ void PlayerCharacter::Update()
 	CallSubroutine("CmnOnUpdate");
 	CallSubroutine("OnUpdate");
 	
-	//run input buffer before checking hitstop
-	if (!FacingRight && !FlipInputs || FlipInputs && FacingRight) //flip inputs with direction
-	{
-		const unsigned int Bit1 = (Inputs >> 2) & 1;
-		const unsigned int Bit2 = (Inputs >> 3) & 1;
-		unsigned int x = (Bit1 ^ Bit2);
-
-		x = x << 2 | x << 3;
-
-		Inputs = Inputs ^ x;
-	}
 	if (!IsStunned)
 	{
 		Enemy->ComboCounter = 0;
 		Enemy->ComboTimer = 0;
 		TotalProration = 10000;
-	}
-	if (!Inputs << 27) //if no direction, set neutral input
-	{
-		Inputs |= (int)InputNeutral;
-	}
-	else
-	{
-		Inputs = Inputs & ~(int)InputNeutral; //remove neutral input if directional input
 	}
 	if (IsThrowLock)
 	{
@@ -142,18 +120,27 @@ void PlayerCharacter::Update()
 		HandleStateMachine(true); //handle state transitions
 		if (ThrowTechTimer > 0)
 		{
-			if (CheckInput(InputCondition::Input_L_And_S))
+			InputCondition ConditionL;
+			InputBitmask BitmaskL;
+			BitmaskL.InputFlag = InputL;
+			ConditionL.Sequence.push_back(BitmaskL);
+			ConditionL.Method = InputMethod::Once;
+			InputCondition ConditionS;
+			InputBitmask BitmaskS;
+			BitmaskS.InputFlag = InputS;
+			ConditionS.Sequence.push_back(BitmaskS);
+			ConditionS.Method = InputMethod::Once;
+			if (CheckInput(ConditionL) && CheckInput(ConditionS) || CheckInput(ConditionS) && CheckInput(ConditionL))
 			{
 				ThrowTechTimer = 0;
 				JumpToState("GuardBreak");
 				Enemy->JumpToState("GuardBreak");
 				IsThrowLock = false;
-				SetInertia(-15000);
-				Enemy->SetInertia(-15000);
-				if (TeamIndex == 0)
-					Hitstop = 1;
-				else
-					Enemy->Hitstop = 1;
+				SetInertia(-35000);
+				Enemy->SetInertia(-35000);
+				HitPosX = (PosX + Enemy->PosX) / 2;
+				HitPosY = (PosY + Enemy->PosY) / 2 + 250000;
+				CreateCommonParticle("cmn_throwtech", POS_Hit);
 				return;
 			}
 		}
@@ -184,6 +171,21 @@ void PlayerCharacter::Update()
 		return;
 	}
 
+	if (ActionTime == 4) //enable kara cancel after window end
+		EnableKaraCancel = true;
+
+	StrikeInvulnerableForTime--;
+	ThrowInvulnerableForTime--;
+	if (StrikeInvulnerableForTime < 0)
+		StrikeInvulnerableForTime = 0;
+	if (ThrowInvulnerableForTime < 0)
+		ThrowInvulnerableForTime = 0;
+	
+	if (PosY > 0) //set jumping if above ground
+	{
+		SetActionFlags(ACT_Jumping);
+	}
+	
 	HandleBufferedState();
 
 	if (TouchingWall)
@@ -225,11 +227,6 @@ void PlayerCharacter::Update()
 			JumpToState("Crouch");
 		}
 		TotalProration = 10000;
-	}
-
-	if (PosY > 0) //set jumping if above ground
-	{
-		SetActionFlags(ACT_Jumping);
 	}
 	
 	Untech--;
@@ -286,6 +283,7 @@ void PlayerCharacter::Update()
 	
 	if (IsDead)
 		DisableState(ENB_Tech);
+
 	Blockstun--;
 	if (Blockstun == 0)
 	{
@@ -303,6 +301,9 @@ void PlayerCharacter::Update()
 		}
 	}
 	
+	InstantBlockTimer--;
+	CheckMissedInstantBlock();
+
 	HandleWallBounce();
 	
 	if (PosY == 0 && PrevPosY != 0) //reset air move counts on ground
@@ -321,9 +322,6 @@ void PlayerCharacter::Update()
 		HandleGroundBounce();
 	}
 	HandleThrowCollision();
-	if (Hitstop != 0)
-		StateMachine.Tick(0.0166666); //update current state
-
 	HandleStateMachine(false); //handle state transitions
 }
 
@@ -360,14 +358,117 @@ void PlayerCharacter::HandleStateMachine(bool Buffer)
                 {
                     continue;
                 }
-				for (int v = 0; v < StateMachine.States[i]->InputConditions.size(); v++) //iterate over input conditions
+				for (InputConditionList& List : StateMachine.States[i]->InputConditionList)
+				{
+					for (int v = 0; v < List.InputConditions.size(); v++) //iterate over input conditions
+					{
+						//check input condition against input buffer, if not met break.
+						if (!InputBuffer.CheckInputCondition(List.InputConditions[v]))
+						{
+							break;
+						}
+						if (v == List.InputConditions.size() - 1) //have all conditions been met?
+						{
+							if (FindChainCancelOption(StateMachine.States[i]->Name.GetString())
+								|| FindWhiffCancelOption(StateMachine.States[i]->Name.GetString())) //if cancel option, allow resetting state
+							{
+								if (Buffer)
+								{
+									BufferedStateName.SetString(StateMachine.States[i]->Name.GetString());
+									return;
+								}
+								if (StateMachine.ForceSetState(StateMachine.States[i]->Name)) //if state set successful...
+								{
+									StateName.SetString(StateMachine.States[i]->Name.GetString());
+									switch (StateMachine.States[i]->StateEntryState)
+									{
+									case EntryState::Standing:
+										CurrentActionFlags = ACT_Standing;
+										break;
+									case EntryState::Crouching:
+										CurrentActionFlags = ACT_Crouching;
+										break;
+									case EntryState::Jumping:
+										CurrentActionFlags = ACT_Jumping;
+										break;
+									default:
+										break;
+									}
+									return; //don't try to enter another state
+								}
+							}
+							else
+							{
+								if (Buffer)
+								{
+									BufferedStateName.SetString(StateMachine.States[i]->Name.GetString());
+									return;
+								}
+								if (StateMachine.SetState(StateMachine.States[i]->Name)) //if state set successful...
+								{
+									StateName.SetString(StateMachine.States[i]->Name.GetString());
+									switch (StateMachine.States[i]->StateEntryState)
+									{
+									case EntryState::Standing:
+										CurrentActionFlags = ACT_Standing;
+										break;
+									case EntryState::Crouching:
+										CurrentActionFlags = ACT_Crouching;
+										break;
+									case EntryState::Jumping:
+										CurrentActionFlags = ACT_Jumping;
+										break;
+									default:
+										break;
+									}
+									return; //don't try to enter another state
+								}
+							}
+						}
+					}
+					if (List.InputConditions.size() == 0) //if no input condtions, set state
+					{
+						if (Buffer)
+						{
+							BufferedStateName.SetString(StateMachine.States[i]->Name.GetString());
+							return;
+						}
+						if (StateMachine.SetState(StateMachine.States[i]->Name)) //if state set successful...
+						{
+							StateName.SetString(StateMachine.States[i]->Name.GetString());
+							switch (StateMachine.States[i]->StateEntryState)
+							{
+							case EntryState::Standing:
+								CurrentActionFlags = ACT_Standing;
+								break;
+							case EntryState::Crouching:
+								CurrentActionFlags = ACT_Crouching;
+								break;
+							case EntryState::Jumping:
+								CurrentActionFlags = ACT_Jumping;
+								break;
+							default:
+								break;
+							}
+							return; //don't try to enter another state
+						}
+					}
+					continue; //this is unneeded but here for clarity.
+				}
+			}
+		}
+		else
+		{
+			for (InputConditionList& List : StateMachine.States[i]->InputConditionList)
+			{
+				for (int v = 0; v < List.InputConditions.size(); v++) //iterate over input conditions
 				{
 					//check input condition against input buffer, if not met break.
-                    if (!InputBuffer.CheckInputCondition(StateMachine.States[i]->InputConditions[v]))
-                    {
-                        break;
-                    }
-					if (v == StateMachine.States[i]->InputConditions.size() - 1) //have all conditions been met?
+					if (!InputBuffer.CheckInputCondition(List.InputConditions[v]))
+					{
+						break;
+					}
+					if (v == List.InputConditions.size() - 1) //have all conditions been met?
 					{
 						if (FindChainCancelOption(StateMachine.States[i]->Name.GetString())
 							|| FindWhiffCancelOption(StateMachine.States[i]->Name.GetString())) //if cancel option, allow resetting state
@@ -426,7 +527,7 @@ void PlayerCharacter::HandleStateMachine(bool Buffer)
 						}
 					}
 				}
-				if (StateMachine.States[i]->InputConditions.size() == 0) //if no input condtions, set state
+				if (List.InputConditions.size() == 0) //if no input condtions, set state
 				{
 					if (Buffer)
 					{
@@ -452,103 +553,6 @@ void PlayerCharacter::HandleStateMachine(bool Buffer)
 						}
 						return; //don't try to enter another state
 					}
-				}
-                continue; //this is unneeded but here for clarity.
-			}
-		}
-		else
-		{
-			for (int v = 0; v < StateMachine.States[i]->InputConditions.size(); v++) //iterate over input conditions
-			{
-				//check input condition against input buffer, if not met break.
-				if (!InputBuffer.CheckInputCondition(StateMachine.States[i]->InputConditions[v]))
-				{
-					break;
-				}
-				if (v == StateMachine.States[i]->InputConditions.size() - 1) //have all conditions been met?
-				{
-					if (FindChainCancelOption(StateMachine.States[i]->Name.GetString())
-						|| FindWhiffCancelOption(StateMachine.States[i]->Name.GetString())) //if cancel option, allow resetting state
-					{
-						if (Buffer)
-						{
-							BufferedStateName.SetString(StateMachine.States[i]->Name.GetString());
-							return;
-						}
-						if (StateMachine.ForceSetState(StateMachine.States[i]->Name)) //if state set successful...
-						{
-							StateName.SetString(StateMachine.States[i]->Name.GetString());
-							switch (StateMachine.States[i]->StateEntryState)
-							{
-							case EntryState::Standing:
-								CurrentActionFlags = ACT_Standing;
-								break;
-							case EntryState::Crouching:
-								CurrentActionFlags = ACT_Crouching;
-								break;
-							case EntryState::Jumping:
-								CurrentActionFlags = ACT_Jumping;
-								break;
-							default:
-								break;
-							}
-							return; //don't try to enter another state
-						}
-					}
-					else
-					{
-						if (Buffer)
-						{
-							BufferedStateName.SetString(StateMachine.States[i]->Name.GetString());
-							return;
-						}
-						if (StateMachine.SetState(StateMachine.States[i]->Name)) //if state set successful...
-						{
-							StateName.SetString(StateMachine.States[i]->Name.GetString());
-							switch (StateMachine.States[i]->StateEntryState)
-							{
-							case EntryState::Standing:
-								CurrentActionFlags = ACT_Standing;
-								break;
-							case EntryState::Crouching:
-								CurrentActionFlags = ACT_Crouching;
-								break;
-							case EntryState::Jumping:
-								CurrentActionFlags = ACT_Jumping;
-								break;
-							default:
-								break;
-							}
-							return; //don't try to enter another state
-						}
-					}
-				}
-			}
-			if (StateMachine.States[i]->InputConditions.size() == 0) //if no input condtions, set state
-			{
-				if (Buffer)
-				{
-					BufferedStateName.SetString(StateMachine.States[i]->Name.GetString());
-					return;
-				}
-				if (StateMachine.SetState(StateMachine.States[i]->Name)) //if state set successful...
-				{
-					StateName.SetString(StateMachine.States[i]->Name.GetString());
-					switch (StateMachine.States[i]->StateEntryState)
-					{
-					case EntryState::Standing:
-						CurrentActionFlags = ACT_Standing;
-						break;
-					case EntryState::Crouching:
-						CurrentActionFlags = ACT_Crouching;
-						break;
-					case EntryState::Jumping:
-						CurrentActionFlags = ACT_Jumping;
-						break;
-					default:
-						break;
-					}
-					return; //don't try to enter another state
 				}
 			}
 		}
@@ -671,6 +675,11 @@ void PlayerCharacter::AddMeter(int Meter)
 void PlayerCharacter::SetMeterCooldownTimer(int Timer)
 {
 	MeterCooldownTimer = Timer;
+}
+
+void PlayerCharacter::SetLockOpponentBurst(bool Locked)
+{
+	LockOpponentBurst = true;
 }
 
 void PlayerCharacter::JumpToState(char* NewName)
@@ -848,6 +857,14 @@ bool PlayerCharacter::CheckIsStunned()
 	return IsStunned;
 }
 
+void PlayerCharacter::RemoveStun()
+{
+	Hitstun = -1;
+	Blockstun = -1;
+	Untech = -1;
+	KnockdownTime = -1;
+	DisableState(ENB_Tech);
+}
 
 void PlayerCharacter::AddAirJump(int NewAirJump)
 {
@@ -883,6 +900,12 @@ bool PlayerCharacter::HandleStateCondition(StateCondition StateCondition)
 		if (PosY > 100000 && SpeedY <= 0)
 			return true;
 		break;
+	case StateCondition::IsAttacking:
+		return IsAttacking;
+	case StateCondition::HitstopCancel:
+		return Hitstop == 0 && IsAttacking;
+	case StateCondition::IsStunned:
+		return IsStunned;
 	case StateCondition::CloseNormal:
 		if (abs(PosX - Enemy->PosX) < CloseNormalRange && !FarNormalForceEnable)
 			return true;
@@ -923,6 +946,38 @@ bool PlayerCharacter::HandleStateCondition(StateCondition StateCondition)
 		if (GameState->StoredBattleState.Meter[PlayerIndex] >= 50000)
 			return true;
 		break;
+	case StateCondition::PlayerVal1True:
+		return PlayerVal1 != 0;
+	case StateCondition::PlayerVal2True:
+		return PlayerVal2 != 0;
+	case StateCondition::PlayerVal3True:
+		return PlayerVal3 != 0;
+	case StateCondition::PlayerVal4True:
+		return PlayerVal4 != 0;
+	case StateCondition::PlayerVal5True:
+		return PlayerVal5 != 0;
+	case StateCondition::PlayerVal6True:
+		return PlayerVal6 != 0;
+	case StateCondition::PlayerVal7True:
+		return PlayerVal7 != 0;
+	case StateCondition::PlayerVal8True:
+		return PlayerVal8 != 0;
+	case StateCondition::PlayerVal1False:
+		return PlayerVal1 == 0;
+	case StateCondition::PlayerVal2False:
+		return PlayerVal2 == 0;
+	case StateCondition::PlayerVal3False:
+		return PlayerVal3 == 0;
+	case StateCondition::PlayerVal4False:
+		return PlayerVal4 == 0;
+	case StateCondition::PlayerVal5False:
+		return PlayerVal5 == 0;
+	case StateCondition::PlayerVal6False:
+		return PlayerVal6 == 0;
+	case StateCondition::PlayerVal7False:
+		return PlayerVal7 == 0;
+	case StateCondition::PlayerVal8False:
+		return PlayerVal8 == 0;
 	default:
 		return false;
 	}
@@ -943,6 +998,18 @@ void PlayerCharacter::SetAirDashTimer(bool IsForward)
 	}
 }
 
+void PlayerCharacter::SetAirDashNoAttackTimer(bool IsForward)
+{
+	if (IsForward)
+	{
+		AirDashNoAttackTime = FAirDashNoAttackTime;
+	}
+	else
+	{
+		AirDashNoAttackTime = BAirDashNoAttackTime;
+	}
+}
+
 bool PlayerCharacter::CheckInput(InputCondition Input)
 {
 	return InputBuffer.CheckInputCondition(Input);
@@ -955,8 +1022,23 @@ void PlayerCharacter::EnableAttacks()
 	EnableState(ENB_SuperAttack);
 }
 
+void PlayerCharacter::EnableCancelIntoSelf(bool Enable)
+{
+	CancelIntoSelf = Enable;
+}
+
 void PlayerCharacter::HandleHitAction()
 {
+	for (int i = 0; i < 32; i++)
+	{
+		if (ChildBattleActors[i] != nullptr)
+		{
+			if (ChildBattleActors[i]->DeactivateOnReceiveHit)
+			{
+				ChildBattleActors[i]->DeactivateObject();
+			}
+		}
+	}
 	if (CurrentHealth <= 0)
 	{
 		IsDead = true;
@@ -1076,42 +1158,103 @@ bool PlayerCharacter::IsCorrectBlock(BlockType BlockType)
 {
 	if (BlockType != BLK_None)
 	{
-		if (CheckInput(InputCondition::Input_Left) && PosY > 0 && !CheckInput(InputCondition::Input_Right))
+		InputCondition Left;
+		InputBitmask BitmaskLeft;
+		BitmaskLeft.InputFlag = InputLeft;
+		Left.Sequence.push_back(BitmaskLeft);
+		Left.bInputAllowDisable = false;
+		Left.Lenience = 12;
+		InputCondition Right;
+		InputBitmask BitmaskRight;
+		BitmaskRight.InputFlag = InputRight;
+		Right.Sequence.push_back(BitmaskRight);
+		if (CheckInput(Left) && !CheckInput(Right) && PosY > 0 || strcmp(GetCurrentStateName().GetString(), "AirBlock") == 0)
 		{
+			Left.Method = InputMethod::Once;
+			if (CheckInput(Left) && InstantBlockTimer <= 0)
+			{
+				AddMeter(800);
+			}
 			return true;
 		}
-		if (CheckInput(InputCondition::Input_4) && BlockType != BLK_Low && !CheckInput(InputCondition::Input_Right))
+		InputCondition Input1;
+		InputBitmask BitmaskDownLeft;
+		BitmaskDownLeft.InputFlag = InputDownLeft;
+		Input1.Sequence.push_back(BitmaskDownLeft);
+		Input1.Method = InputMethod::Strict;
+		Input1.bInputAllowDisable = false;
+		Input1.Lenience = 12;
+		if ((CheckInput(Input1) || strcmp(GetCurrentStateName().GetString(), "CrouchBlock") == 0) && BlockType != BLK_High && !CheckInput(Right))
 		{
+			Input1.Method = InputMethod::OnceStrict;
+			if (CheckInput(Input1) && InstantBlockTimer <= 0)
+			{
+				AddMeter(800);
+			}
 			return true;
 		}
-		if (CheckInput(InputCondition::Input_1) && BlockType != BLK_High && !CheckInput(InputCondition::Input_Right))
+		InputCondition Input4;
+		Input4.Sequence.push_back(BitmaskLeft);
+		Input4.Method = InputMethod::Strict;
+		Input4.bInputAllowDisable = false;
+		Input4.Lenience = 12;
+		if ((CheckInput(Input4) || strcmp(GetCurrentStateName().GetString(), "Block") == 0) && BlockType != BLK_Low && !CheckInput(Right))
 		{
-			return true;
-		}
-		if (CheckInput(InputCondition::Input_Left) && BlockType == BLK_Mid && !CheckInput(InputCondition::Input_Right))
-		{
+			Input4.Method = InputMethod::OnceStrict;
+			if (CheckInput(Input4) && InstantBlockTimer <= 0)
+			{
+				AddMeter(800);
+			}
 			return true;
 		}
 	}
 	return false;
 }
 
-void PlayerCharacter::HandleBlockAction()
+void PlayerCharacter::CheckMissedInstantBlock()
+{
+	InputCondition Left;
+	InputBitmask BitmaskLeft;
+	BitmaskLeft.InputFlag = InputLeft;
+	Left.Sequence.push_back(BitmaskLeft);
+	Left.bInputAllowDisable = false;
+	Left.Lenience = 12;
+	if (CheckInput(Left))
+	{
+		Left.Method = InputMethod::Once;
+		if (!CheckInput(Left))
+		{
+			InstantBlockTimer = 30;
+		}
+	}
+}
+
+void PlayerCharacter::HandleBlockAction(BlockType BlockType)
 {
 	EnableInertia();
-	if (CheckInputRaw(InputLeft) && !CheckInputRaw(InputDown) && PosY <= 0)
+	InputCondition Input1;
+	InputBitmask BitmaskDownLeft;
+	BitmaskDownLeft.InputFlag = InputDownLeft;
+	Input1.Sequence.push_back(BitmaskDownLeft);
+	Input1.Method = InputMethod::Strict;
+	InputCondition Left;
+	InputBitmask BitmaskLeft;
+	BitmaskLeft.InputFlag = InputLeft;
+	Left.Sequence.push_back(BitmaskLeft);
+	if ((CheckInput(Left) && PosY > 0) || strcmp(GetCurrentStateName().GetString(), "AirBlock") == 0)
 	{
-		JumpToState("Block");
-		CurrentActionFlags = ACT_Standing;
+		JumpToState("AirBlock");
+		CurrentActionFlags = ACT_Jumping;
 	}
-	else if (CheckInputRaw(InputDownLeft) && PosY <= 0)
+	else if ((CheckInput(Input1) && PosY <= 0) || strcmp(GetCurrentStateName().GetString(), "CrouchBlock") == 0)
 	{
 		JumpToState("CrouchBlock");
 		CurrentActionFlags = ACT_Crouching;
 	}
-	else
+	else 
 	{
-		JumpToState("AirBlock");
+		JumpToState("Block");
+		CurrentActionFlags = ACT_Standing;
 	}
 }
 
@@ -1161,11 +1304,20 @@ void PlayerCharacter::SetThrowInvulnerable(bool Invulnerable)
 	ThrowInvulnerable = Invulnerable;
 }
 
+void PlayerCharacter::SetStrikeInvulnerableForTime(int32_t Timer)
+{
+	StrikeInvulnerableForTime = Timer;
+}
+
+void PlayerCharacter::SetThrowInvulnerableForTime(int32_t Timer)
+{
+	ThrowInvulnerableForTime = Timer;
+}
+
 void PlayerCharacter::SetProjectileInvulnerable(bool Invulnerable)
 {
 	ProjectileInvulnerable = Invulnerable;
 }
-
 
 void PlayerCharacter::SetHeadInvulnerable(bool Invulnerable)
 {
@@ -1237,7 +1389,7 @@ void PlayerCharacter::PlayVoice(char* Name)
 	}*/
 }
 
-BattleActor* PlayerCharacter::AddBattleActor(char* InStateName, int PosXOffset, int PosYOffset)
+BattleActor* PlayerCharacter::AddBattleActor(char* InStateName, int PosXOffset, int PosYOffset, PosType PosType)
 {
 	int Index = 0;
 	for (CString<64> String : ObjectStateNames)
@@ -1263,6 +1415,40 @@ BattleActor* PlayerCharacter::AddBattleActor(char* InStateName, int PosXOffset, 
 			if (!ChildBattleActors[i]->IsActive)
 			{
 				ChildBattleActors[i] = GameState->AddBattleActor(ObjectStates[Index],
+					PosX + PosXOffset, PosY + PosYOffset, FacingRight, this);
+				return ChildBattleActors[i];
+			}
+		}
+	}
+	return nullptr;
+}
+
+BattleActor* PlayerCharacter::AddCommonBattleActor(char* InStateName, int PosXOffset, int PosYOffset, PosType PosType)
+{
+	int Index = 0;
+	for (CString<64> String : CommonObjectStateNames)
+	{
+		if (!strcmp(String.GetString(), InStateName))
+		{
+			break;
+		}
+		Index++;
+	}
+	if (Index < CommonObjectStateNames.size())
+	{
+		if (!FacingRight)
+			PosXOffset = -PosXOffset;
+		for (int i = 0; i < 32; i++)
+		{
+			if (ChildBattleActors[i] == nullptr)
+			{
+				ChildBattleActors[i] = GameState->AddBattleActor(CommonObjectStates[Index],
+					PosX + PosXOffset, PosY + PosYOffset, FacingRight, this);
+				return ChildBattleActors[i];
+			}
+			if (!ChildBattleActors[i]->IsActive)
+			{
+				ChildBattleActors[i] = GameState->AddBattleActor(CommonObjectStates[Index],
 					PosX + PosXOffset, PosY + PosYOffset, FacingRight, this);
 				return ChildBattleActors[i];
 			}
@@ -1366,12 +1552,23 @@ void PlayerCharacter::DisableLastInput()
 
 void PlayerCharacter::OnStateChange()
 {
+	for (int i = 0; i < 32; i++)
+	{
+		if (ChildBattleActors[i] != nullptr)
+		{
+			if (ChildBattleActors[i]->DeactivateOnStateChange)
+			{
+				ChildBattleActors[i]->DeactivateObject();
+			}
+		}
+	}
+	DisableLastInput();
 	if (MiscFlags & MISC_FlipEnable)
 		HandleFlip();
-	DisableLastInput();
+	EnableKaraCancel = true;
+	ProrateOnce = false;
 	StateName.SetString("");
 	HitEffectName.SetString("");
-	Gravity = JumpGravity;
 	for (int i = 0; i < CancelArraySize; i++)
 	{
 		ChainCancelOptionsInternal[i] = -1;
@@ -1383,13 +1580,15 @@ void PlayerCharacter::OnStateChange()
 	FAirDashCancel = false;
 	BAirDashCancel = false;
 	HasHit = false;
-	AnimTime = -1; //reset anim time
-	ActionTime = -1; //reset action time
+	AnimTime = 0; //reset anim time
+	ActionTime = 0; //reset action time
 	DefaultLandingAction = true;
 	DefaultCommonAction = true;
 	FarNormalForceEnable = false;
 	SpeedXPercent = 100;
 	SpeedXPercentPerFrame = false;
+	SpeedYPercent = 100;
+	SpeedYPercentPerFrame = false;
 	IsAttacking = false;
 	ThrowActive = false;
 	StrikeInvulnerable = false;
@@ -1410,6 +1609,10 @@ void PlayerCharacter::OnStateChange()
 	StateVal8 = 0;
 	FlipInputs = false;
 	PushCollisionActive = true;
+	LockOpponentBurst = false;
+	CancelIntoSelf = false;
+	NormalHitEffect = HitEffect();
+	CounterHitEffect = HitEffect();
 }
 
 void PlayerCharacter::SaveForRollbackPlayer(unsigned char* Buffer)
@@ -1435,32 +1638,23 @@ void PlayerCharacter::HandleThrowCollision()
 		if ((PosX <= Enemy->PosX && ThrowPosX >= Enemy->L || PosX > Enemy->PosX && ThrowPosX <= Enemy->R)
 			&& T >= Enemy->B && T <= Enemy->T)
 		{
-			if (Enemy->CheckInput(InputCondition::Input_L_And_S))
-			{
-				JumpToState("GuardBreak");
-				Enemy->JumpToState("GuardBreak");
-				SetInertia(-15000);
-				Enemy->SetInertia(-15000);
-				if (TeamIndex == 0)
-					Hitstop = 1;
-				else
-					Enemy->Hitstop = 1;
-			}
-			else
-			{
-				Enemy->JumpToState("Hitstun0");
-				Enemy->IsThrowLock = true;
-				Enemy->ThrowTechTimer = 10;
-				ThrowExe();
-			}
+			Enemy->JumpToState("Hitstun0");
+			Enemy->IsThrowLock = true;
+			Enemy->ThrowTechTimer = 10;
+			ThrowExe();
 		}
 	}
 }
 
 bool PlayerCharacter::CheckKaraCancel(StateType InStateType)
 {
+	if (!EnableKaraCancel)
+		return false;
+	
+	EnableKaraCancel = false; //prevents kara cancelling immediately after the last kara cancel
+	
 	//two checks: if it's an attack, and if the given state type has a higher or equal priority to the current state
-	if (InStateType == StateType::NormalThrow && StateMachine.CurrentState->Type < InStateType && StateMachine.CurrentState->Type >= StateType::NormalAttack && ActionTime < 3)
+	if (InStateType == StateType::NormalThrow && StateMachine.CurrentState->Type < InStateType && StateMachine.CurrentState->Type >= StateType::NormalAttack && ActionTime < 3 && ComboTimer == 0)
 	{
 		return true;
 	}
@@ -1513,16 +1707,21 @@ void PlayerCharacter::ResetForRound()
 	B = 0;
 	NormalHitEffect = HitEffect();
 	CounterHitEffect = HitEffect();
+	ClearHomingParam();
 	HitActive = false;
 	IsAttacking = false;
 	AttackHeadAttribute = false;
 	AttackProjectileAttribute = false;
 	RoundStart = true;
+	FacingRight = false;
 	HasHit = false;
 	SpeedXPercent = 100;
 	SpeedXPercentPerFrame = false;
-	FacingRight = false;
+	SpeedYPercent = 100;
+	SpeedYPercentPerFrame = false;
 	ScreenCollisionActive = true;
+	ProrateOnce = false;
+	StoredRegister = 0;
 	StateVal1 = 0;
 	StateVal2 = 0;
 	StateVal3 = 0;
@@ -1538,6 +1737,10 @@ void PlayerCharacter::ResetForRound()
 	AnimTime = -1;
 	HitPosX = 0;
 	HitPosY = 0;
+	for (int i = 0; i < CollisionArraySize; i++)
+	{
+		CollisionBoxes[i] = CollisionBox();
+	}
 	ObjectID = 0;
 	CurrentEnableFlags = 0;
 	CurrentHealth = 0;
@@ -1549,8 +1752,11 @@ void PlayerCharacter::ResetForRound()
 	BAirDashCancel = false;
 	SpecialCancel = false;
 	SuperCancel = false;
-	DefaultLandingAction = false;
+	DefaultLandingAction = true;
 	FarNormalForceEnable = false;
+	EnableKaraCancel = true;
+	CancelIntoSelf = false;
+	LockOpponentBurst = false;
 	IsDead = false;
 	ThrowRange = 0;
 	CurrentWallBounceEffect = WallBounceEffect();
@@ -1567,6 +1773,7 @@ void PlayerCharacter::ResetForRound()
 	Hitstun = -1;
 	Blockstun = -1;
 	Untech = -1;
+	InstantBlockTimer = -1;
 	TotalProration = 10000;
 	ComboCounter = 0;
 	ComboTimer = 0;
@@ -1581,6 +1788,8 @@ void PlayerCharacter::ResetForRound()
 	WhiffCancelEnabled = false;
 	StrikeInvulnerable = false;
 	ThrowInvulnerable = false;
+	StrikeInvulnerableForTime = 0;
+	ThrowInvulnerableForTime = 0;
 	ProjectileInvulnerable = false;
 	HeadInvulnerable = false;
 	RoundWinTimer = 300;
@@ -1605,7 +1814,12 @@ void PlayerCharacter::ResetForRound()
 	ReceivedAttackLevel = -1;
 	for (int i = 0; i < 90; i++)
 		InputBuffer.InputBufferInternal[i] = InputNeutral;
-	InitPlayer();
+	CurrentHealth = Health;
+	AttackProjectileAttribute = false;
+	DefaultLandingAction = true;
+	EnableAll();
+	EnableFlip(true);
+	StateName.SetString("Stand");
 }
 
 void PlayerCharacter::HandleWallBounce()
@@ -1614,7 +1828,7 @@ void PlayerCharacter::HandleWallBounce()
 	{
 		if (CurrentWallBounceEffect.WallBounceInCornerOnly)
 		{
-			if (PosX > 2160000 || PosX < -2160000)
+			if (PosX >= 2160000 || PosX <= -2160000)
 			{
 				if (CurrentWallBounceEffect.WallBounceCount > 0)
 				{

@@ -34,6 +34,15 @@ enum PlayerStats //player stats list
 	PLY_BAirDashSpeed,
 };
 
+struct SavedInputCondition
+{
+	InputBitmask Sequence[32];
+	int Lenience = 8;
+	int ImpreciseInputCount = 0;
+	bool bInputAllowDisable = true;
+	InputMethod Method = InputMethod::Normal;
+};
+
 class PlayerCharacter : public BattleActor
 {
 public:
@@ -55,6 +64,9 @@ protected:
 	bool SuperCancel = true;
 	bool DefaultLandingAction = true;
 	bool FarNormalForceEnable = false;
+	bool EnableKaraCancel = true;
+	bool CancelIntoSelf = false;
+	bool LockOpponentBurst = false;
 	int32_t ThrowRange = 0;
 	
 public:
@@ -78,6 +90,7 @@ public:
 	int32_t Blockstun = -1;
 	int32_t Untech = -1;
 	int32_t KnockdownTime = -1;
+	int32_t InstantBlockTimer = -1;
 	int32_t TotalProration = 10000;
 	int32_t ComboCounter = 0;
 	int32_t ComboTimer = 0;
@@ -90,6 +103,8 @@ public:
 	bool WhiffCancelEnabled = false;
 	bool StrikeInvulnerable = false;
 	bool ThrowInvulnerable = false;
+	int32_t StrikeInvulnerableForTime;
+	int32_t ThrowInvulnerableForTime;
 	bool ProjectileInvulnerable = false;
 	bool HeadInvulnerable = false;
 	int RoundWinTimer = 300;
@@ -137,6 +152,7 @@ public:
 	int32_t CloseNormalRange;
 	int32_t Health;
 	int32_t ComboRate = 60;
+	int32_t OtgProration = 80;
 	int32_t ForwardWalkMeterGain;
 	int32_t ForwardJumpMeterGain;
 	int32_t ForwardDashMeterGain;
@@ -182,8 +198,8 @@ public:
 
 	BattleActor* StoredBattleActors[16];
 
-	bool ComponentVisible[MaxComponentCount];
-	
+	SavedInputCondition SavedInputCondition;
+
 	//anything past here isn't saved or loaded for rollback	
 	int32_t PlayerSyncEnd; 
 
@@ -195,12 +211,16 @@ public:
 	char* ObjectScript;
 	uint32_t ObjectScriptLength;
 	ScriptAnalyzer* CommonAnalyzer;
+	ScriptAnalyzer* CommonObjAnalyzer;
 
 	std::vector<Subroutine*> CommonSubroutines;
 	std::vector<CString<64>> CommonSubroutineNames;
 	
 	std::vector<Subroutine*> Subroutines;
 	std::vector<CString<64>> SubroutineNames;
+	
+	std::vector<State*> CommonObjectStates;
+	std::vector<CString<64>> CommonObjectStateNames; 
 
 	std::vector<State*> ObjectStates;
 	std::vector<CString<64>> ObjectStateNames; 
@@ -232,8 +252,10 @@ public:
 	void HandleHitAction();
 	//check attack against block stance
 	bool IsCorrectBlock(BlockType BlockType);
+	//check missed instant block
+	void CheckMissedInstantBlock();
 	//jump to correct block state
-	void HandleBlockAction();
+	void HandleBlockAction(BlockType BlockType);
 	//called whenever state changes
 	void OnStateChange(); 
 	virtual void Update() override;
@@ -273,6 +295,8 @@ public:
 	void AddMeter(int Meter);
 	//sets meter gain cooldoown timer
 	void SetMeterCooldownTimer(int Timer);
+	//set opponent burst locked
+	void SetLockOpponentBurst(bool Locked);
 	//set standing/crouching/jumping
 	void SetActionFlags(ActionFlags ActionFlag);
 	//force set state
@@ -289,6 +313,8 @@ public:
 	void EnableState(EnableFlags NewEnableFlags);
 	//enable all attacks only
 	void EnableAttacks();
+	//enable cancelling into same state
+	void EnableCancelIntoSelf(bool Enable);
 	//disable state type
 	void DisableState(EnableFlags NewEnableFlags);
 	//disable ground movement only
@@ -302,12 +328,14 @@ public:
 	//checks input condition
 	bool CheckInput(InputCondition Input); 
 	bool CheckIsStunned();
+	void RemoveStun();
 	//temporarily adds air jump
 	void AddAirJump(int32_t NewAirJump);
 	//temporarily adds air dash
 	void AddAirDash(int32_t NewAirDash);
 	//set air dash timer (set is forward for forward airdashes)
 	void SetAirDashTimer(bool IsForward);
+	void SetAirDashNoAttackTimer(bool IsForward);	
 	//add chain cancel option, use this in OnEntry
 	void AddChainCancelOption(CString<64> Option);
 	//add whiff cancel option, use this in OnEntry
@@ -332,6 +360,10 @@ public:
 	void SetStrikeInvulnerable(bool Invulnerable);
 	//sets throw invulnerable enabled
 	void SetThrowInvulnerable(bool Invulnerable);
+	//sets strike invulnerable enabled for time
+	void SetStrikeInvulnerableForTime(int32_t Timer);
+	//sets throw invulnerable enabled for time
+	void SetThrowInvulnerableForTime(int32_t Timer);
 	//sets projectile invulnerable enabled
 	void SetProjectileInvulnerable(bool Invulnerable);
 	//sets head attribute invulnerable enabled
@@ -363,7 +395,9 @@ public:
 	//disables last input
 	void DisableLastInput();
 	//creates object
-	BattleActor* AddBattleActor(char* InStateName, int32_t PosXOffset, int32_t PosYOffset);
+	BattleActor* AddBattleActor(char* InStateName, int32_t PosXOffset, int32_t PosYOffset, PosType PosType);
+	//creates common object
+	BattleActor* AddCommonBattleActor(char* InStateName, int32_t PosXOffset, int32_t PosYOffset, PosType PosType);
 	//stores battle actor in slot
 	void AddBattleActorToStorage(BattleActor* InActor, int Index);
 };

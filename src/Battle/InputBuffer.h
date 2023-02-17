@@ -10,7 +10,7 @@
  */
 struct InputBuffer
 {
-private:
+protected:
 	int32_t InputSequence[20] = { -1 };
 	int32_t Lenience = 8; //how much time is allowed between inputs
 	int32_t ImpreciseInputCount = 0; //how much time is allowed between inputs
@@ -25,7 +25,6 @@ public:
 	bool CheckInputSequenceStrict(); //directional inputs must be exact
 	bool CheckInputSequenceOnce();
 	bool CheckInputSequenceOnceStrict();
-	void ResetInputSequence();
 	void FlipInputsInBuffer();
 };
 #pragma pack(pop)

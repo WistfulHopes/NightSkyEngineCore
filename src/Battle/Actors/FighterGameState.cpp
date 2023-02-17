@@ -93,7 +93,7 @@ void FighterGameState::HandleRoundWin()
 		}
 		else if (StoredBattleState.RoundTimer <= 0)
 		{
-			if (Players[0]->CurrentHealth > 0)
+			if (Players[0]->CurrentHealth > Players[3]->CurrentHealth)
 			{
 				if (!Players[0]->RoundWinInputLock)
 					StoredBattleState.P1RoundsWon++;
@@ -107,7 +107,7 @@ void FighterGameState::HandleRoundWin()
 					RoundInit();
 				}
 			}
-			else if (Players[3]->CurrentHealth > 0)
+			else if (Players[3]->CurrentHealth > Players[0]->CurrentHealth)
 			{
 				if (!Players[3]->RoundWinInputLock)
 					StoredBattleState.P2RoundsWon++;
@@ -223,6 +223,7 @@ void FighterGameState::HandleMatchWin()
 
 void FighterGameState::RoundInit()
 {
+	StoredBattleState.RoundCount++;
 	for (int i = 0; i < 400; i++)
 		Objects[i]->ResetObject();
 	
@@ -287,6 +288,7 @@ void FighterGameState::Init()
 
 void FighterGameState::Update(int Input1, int Input2)
 {
+	StoredBattleState.TimeUntilRoundStart--;
 	if (!StoredBattleState.PauseTimer)
 		StoredBattleState.RoundTimer--;
 	if (StoredBattleState.RoundTimer < 0)
@@ -570,15 +572,15 @@ void FighterGameState::SetWallCollision()
 			if (Players[i]->IsOnScreen)
 			{
 				Players[i]->TouchingWall = true;
-				if (Players[i]->GetInternalValue(VAL_PosX) > 1080000 + StoredBattleState.CurrentScreenPos)
+				if (Players[i]->GetInternalValue(VAL_PosX) >= 1080000 + StoredBattleState.CurrentScreenPos)
 				{
 					Players[i]->SetPosX(1080000 + StoredBattleState.CurrentScreenPos);
 				}
-				else if (Players[i]->GetInternalValue(VAL_PosX) < -1080000 + StoredBattleState.CurrentScreenPos)
+				else if (Players[i]->GetInternalValue(VAL_PosX) <= -1080000 + StoredBattleState.CurrentScreenPos)
 				{
 					Players[i]->SetPosX(-1080000 + StoredBattleState.CurrentScreenPos);
 				}
-				else if (Players[i]->GetInternalValue(VAL_PosX) < 1080000 + StoredBattleState.CurrentScreenPos || Players[i]->GetInternalValue(VAL_PosX) > -1080000 + StoredBattleState.CurrentScreenPos)
+				else if (Players[i]->GetInternalValue(VAL_PosX) <= 1080000 + StoredBattleState.CurrentScreenPos || Players[i]->GetInternalValue(VAL_PosX) >= -1080000 + StoredBattleState.CurrentScreenPos)
 				{
 					Players[i]->TouchingWall = false;
 				}

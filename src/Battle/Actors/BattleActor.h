@@ -3,6 +3,7 @@
 #include "../../CString.h"
 #include "../CollisionBox.h"
 #include <cstdint>
+#include <cstdio>
 
 #pragma pack (push, 1)
 
@@ -12,9 +13,26 @@ class FighterGameState;
 
 constexpr int32_t CollisionArraySize = 50;
 
+enum DistanceType
+{
+	DIST_Distance,
+	DIST_DistanceX,
+	DIST_DistanceY,
+	DIST_FrontDistanceX,
+};
+
+enum HomingType
+{
+	HOMING_DistanceAccel,
+	HOMING_FixAccel,
+	HOMING_ToSpeed,
+};
+
 enum PosType
 {
 	POS_Player,
+	POS_Self,
+	POS_Center,
 	POS_Enemy,
 	POS_Hit,
 };
@@ -40,6 +58,7 @@ enum ObjType
 	OBJ_Child13,
 	OBJ_Child14,
 	OBJ_Child15,
+	OBJ_Null,
 };
 
 enum class HitSFXType
@@ -60,6 +79,14 @@ enum InternalValue //internal values list
 	VAL_StoredRegister,
 	VAL_Angle,
 	VAL_ActionFlag,
+	VAL_StateVal1,
+	VAL_StateVal2,
+	VAL_StateVal3,
+	VAL_StateVal4,
+	VAL_StateVal5,
+	VAL_StateVal6,
+	VAL_StateVal7,
+	VAL_StateVal8,
 	VAL_PlayerVal1,
 	VAL_PlayerVal2,
 	VAL_PlayerVal3,
@@ -68,9 +95,10 @@ enum InternalValue //internal values list
 	VAL_PlayerVal6,
 	VAL_PlayerVal7,
 	VAL_PlayerVal8,
-	VAL_SpeedX,
+	VAL_SpeedX, 
 	VAL_SpeedY,
 	VAL_ActionTime,
+	VAL_AnimTime,
 	VAL_PosX,
 	VAL_PosY,
 	VAL_Inertia,
@@ -80,6 +108,9 @@ enum InternalValue //internal values list
 	VAL_IsAir,
 	VAL_IsLand,
 	VAL_IsStunned,
+	VAL_IsKnockedDown,
+	VAL_HasHit,
+	VAL_IsAttacking,
 	VAL_Health,
 	VAL_Meter,
 	VAL_DefaultCommonAction,
@@ -157,6 +188,17 @@ struct HitEffect
 	bool DeathCamOverride = false;
 };
 
+struct HomingParams
+{
+	HomingType Type;
+	ObjType Target = OBJ_Null;
+	PosType Pos;
+	int32_t OffsetX;
+	int32_t OffsetY;
+	int32_t ParamA;
+	int32_t ParamB;
+};
+
 struct Vector
 {
 	Vector(int32_t NewX, int32_t NewY)
@@ -188,15 +230,12 @@ protected:
 	int32_t SpeedY = 0;
 	int32_t Gravity = 1900;
 	int32_t Inertia = 0;
-	int32_t ActiveTime = -1;
-	int32_t ActionTime = -1;
+	int32_t ActionTime = 0;
 	int32_t PushHeight = 0;
 	int32_t PushHeightLow = 0;
 	int32_t PushWidth = 0;
 	int32_t PushWidthExpand = 0;
 	int32_t Hitstop = 0;
-	HitEffect NormalHitEffect;
-	HitEffect CounterHitEffect;
 public:
 	int32_t L = 0;
 	int32_t R = 0;
@@ -205,6 +244,9 @@ public:
 	bool HitActive = false;
 	bool IsAttacking = false;
 	bool InitOnNextFrame = false;
+	HitEffect NormalHitEffect;
+	HitEffect CounterHitEffect;
+	HomingParams Homing;
 protected:
 	bool AttackHeadAttribute = false;
 	bool AttackProjectileAttribute = true;
@@ -213,9 +255,11 @@ protected:
 	bool DeactivateOnNextUpdate = false;
 	int32_t SpeedXPercent = 100;
 	bool SpeedXPercentPerFrame = false;
+	int32_t SpeedYPercent = 100;
+	bool SpeedYPercentPerFrame = false;
 	bool ScreenCollisionActive = false;
 	bool PushCollisionActive = false;
-
+	bool ProrateOnce = false;
 public:
 	//script values stored here
 	int32_t StateVal1 = 0;
@@ -233,16 +277,17 @@ public:
 	//disabled if not player
 	bool IsPlayer = false;
 	int32_t SuperFreezeTime = -1;
-	
-	//cel name for internal use. copied from CelName CString<64>
+		
+	bool DeactivateOnStateChange = false;
+	bool DeactivateOnReceiveHit = true;
+
+	//cel name
 	CString<64> CelNameInternal;
 	//for hit effect overrides
-	CString<64> HitEffectName; 
-	//for socket attachment
-	CString<64> SocketName; 
+	CString<64> HitEffectName;
 	
 	//current animation time
-	int32_t AnimTime = -1;
+	int32_t AnimTime = 0;
 
 	//for spawning hit particles
 	int32_t HitPosX;
@@ -270,6 +315,8 @@ public:
 protected:
 	//move object based on speed and inertia
 	void Move();
+	//calculates homing speed based on params
+	void CalculateHoming();
 	//get boxes based on cel name
 	void GetBoxes(); 
 
@@ -287,7 +334,9 @@ public:
 	void HandleClashCollision(BattleActor* OtherObj);
 	//handles flip
 	void HandleFlip();
-	
+	//gets position from pos type
+	void PosTypeToPosition(PosType Type, int32_t* OutPosX, int32_t* OutPosY);
+
 	virtual void LogForSyncTest(FILE* file);
 
 	//initializes the object. not for use with players.
@@ -295,13 +344,18 @@ public:
 	//updates the object. called every frame
 	virtual void Update();
 	
+	//static helpers
+	static int32_t Vec2Angle_x1000(int32_t x, int32_t y);
+	static int32_t Cos_x1000(int32_t Deg_x10);
+	static int32_t Sin_x1000(int32_t Deg_x10);
+
 	//script callable functions
-	
 	//gets internal value for script
 	int32_t GetInternalValue(InternalValue InternalValue, ObjType ObjType = OBJ_Self);
-	void SetInternalValue(InternalValue InternalValue, int32_t Val, ObjType ObjType = OBJ_Self);
+	void SetInternalValue(InternalValue InternalValue, int32_t NewValue, ObjType ObjType = OBJ_Self);
 	//checks if on frame
 	bool IsOnFrame(int32_t Frame);
+	//check if hitstop, super freeze, or throw lock is active
 	bool IsStopped();
 	//sets cel name
 	void SetCelName(char* InCelName);
@@ -319,20 +373,32 @@ public:
 	void AddPosY(int32_t InPosY);
 	//sets x speed
 	void SetSpeedX(int32_t InSpeedX);
+	//sets x speed with no regard for direction
+	void SetSpeedXRaw(int32_t InSpeedX);
 	//sets y speed
 	void SetSpeedY(int32_t InSpeedY);
 	//adds x speed
 	void AddSpeedX(int32_t InSpeedX);
+	//adds x speed with no regard for direction
+	void AddSpeedXRaw(int32_t InSpeedX);
 	//adds y speed
 	void AddSpeedY(int32_t InSpeedY);
 	//the current x speed will be set to this percent.
 	void SetSpeedXPercent(int32_t Percent);
 	//the current x speed will be set to this percent every frame.
 	void SetSpeedXPercentPerFrame(int32_t Percent);
+	//the current y speed will be set to this percent.
+	void SetSpeedYPercent(int32_t Percent);
+	//the current y speed will be set to this percent every frame.
+	void SetSpeedYPercentPerFrame(int32_t Percent);
 	//sets gravity
 	void SetGravity(int32_t InGravity);
+	//adds gravity
+	void AddGravity(int32_t InGravity);
 	//sets inertia. when inertia is enabled, inertia adds to your position every frame, but inertia decreases every frame
 	void SetInertia(int32_t InInertia);
+	//adds inertia
+	void AddInertia(int32_t InInertia);
 	//clears inertia
 	void ClearInertia();
 	//enables inertia
@@ -341,6 +407,14 @@ public:
 	void DisableInertia();
 	//halts momentum
 	void HaltMomentum();
+	//sets homing parameters
+	void SetHomingParam(HomingType Type, ObjType Target, PosType Pos, int32_t OffsetX, int32_t OffsetY, int32_t ParamA, int32_t ParamB);
+	//clears homing parameters
+	void ClearHomingParam();
+	//calculates distance between points
+	int32_t CalculateDistanceBetweenPoints(DistanceType Type, ObjType Obj1, PosType Pos1, ObjType Obj2, PosType Pos2);
+	//sets x position by percent of screen
+	void SetPosXByScreenPercent(int32_t ScreenPercent);
 	//expands pushbox width temporarily
 	void SetPushWidthExpand(int32_t Expand);
 	//sets direction
@@ -351,6 +425,8 @@ public:
 	void EnableFlip(bool Enabled);
 	//enables hit
 	void EnableHit(bool Enabled);
+	//enables prorate once
+	void EnableProrateOnce(bool Enabled);
 	//toggles push collision
 	void SetPushCollisionActive(bool Active);
 	//sets attacking. while this is true, you can be counter hit, but you can hit the opponent and chain cancel.
@@ -367,6 +443,8 @@ public:
 	void CreateCommonParticle(char* Name, PosType PosType, Vector Offset = Vector(0, 0), int32_t Angle = 0);
 	//creates character particle
 	void CreateCharaParticle(char* Name, PosType PosType, Vector Offset = Vector(0, 0), int32_t Angle = 0);
+	//creates common particle and attaches it to the object. only use with non-player objects.
+	void LinkCommonParticle(char* Name);
 	//creates character particle and attaches it to the object. only use with non-player objects.
 	void LinkCharaParticle(char* Name);
 	//plays common sound
@@ -381,6 +459,10 @@ public:
 	BattleActor* GetBattleActor(ObjType Type);
 	//DO NOT USE ON PLAYERS. if object goes beyond screen bounds, deactivate
 	void DeactivateIfBeyondBounds();
+	//if player changes state, deactivate
+	void EnableDeactivateOnStateChange(bool Enable);
+	//if player receives hit, deactivate
+	void EnableDeactivateOnReceiveHit(bool Enable);
 	//DO NOT USE ON PLAYERS. sets the object to deactivate next frame.
 	void DeactivateObject();
 	//resets object for next use

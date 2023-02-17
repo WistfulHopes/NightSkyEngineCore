@@ -4,6 +4,7 @@
 
 enum InputFlags
 {
+	InputNone = 0x0,
 	InputUp = 0x1,
 	InputDown = 0x2,
 	InputLeft = 0x4,
@@ -19,6 +20,7 @@ enum InputFlags
 	InputS = 0x100,
 	InputA1 = 0x200,
 	InputA2 = 0x400,
+	InputDash = 0x800,
 };
 
 enum ActionFlags
@@ -44,6 +46,7 @@ enum EnableFlags
 	ENB_SuperAttack = 0x800,
 	ENB_Block = 0x1000,
 	ENB_Tech = 0x2000,
+	ENB_Burst = 0x4000,
 };
 
 enum MiscFlags

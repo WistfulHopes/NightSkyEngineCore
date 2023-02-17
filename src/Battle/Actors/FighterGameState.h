@@ -39,8 +39,9 @@ struct AudioChannel
 
 struct BattleState
 {
-	char BattleStateSync = 0;
+	char BattleStateSync = 0; //starting from this until BattleStateSyncEnd, everything is saved/loaded for rollback
 	int32_t FrameNumber = 0;
+	int TimeUntilRoundStart = 180;
 	int32_t CurrentScreenPos = 0;
 	int32_t RoundTimer = 0;
 	bool PauseTimer = false;
@@ -49,6 +50,7 @@ struct BattleState
 	int32_t MaxMeter[2] { 50000 , 50000 };
 	int32_t P1RoundsWon = 0;
 	int32_t P2RoundsWon = 0;
+	int32_t RoundCount = 0;
 	AudioChannel CommonAudioChannels[CommonAudioChannelCount];
 	AudioChannel CharaAudioChannels[CharaAudioChannelCount];
 	AudioChannel CharaVoiceChannels[CharaVoiceChannelCount];
