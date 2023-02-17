@@ -58,11 +58,11 @@ struct BattleState
 	
 	char BattleStateSyncEnd = 0;
 
-	RoundFormat RoundFormat = RoundFormat::FirstToTwo;
+	RoundFormat CurRoundFormat = RoundFormat::FirstToTwo;
 };
 #pragma pack(pop)
 
-#define SIZEOF_BATTLESTATE offsetof(BattleState, BattleStateSyncEnd) - offsetof(BattleState, BattleStateSync)
+#define SIZEOF_BATTLESTATE offsetof(BattleState, BattleState::BattleStateSyncEnd) - offsetof(BattleState, BattleState::BattleStateSync)
 
 #pragma pack (push, 1)
 struct RollbackData
@@ -111,7 +111,8 @@ public:
 	int32_t ActiveObjectCount;
 	
 	InputDevice* InputDevices[3] = {};
-
+	bool MatchWon;
+	
 private:
 	int32_t LocalInputs[2] = {0, 0};
 	int32_t RemoteInputs[2] = {0, 0};

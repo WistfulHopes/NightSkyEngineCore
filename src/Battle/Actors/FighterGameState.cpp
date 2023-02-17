@@ -1,5 +1,6 @@
 #include "FighterGameState.h"
 #include "InputDevice.h"
+#include <cstdlib>
 
 void FighterGameState::TickGameState()
 {
@@ -18,10 +19,11 @@ int FighterGameState::GetLocalInputs(int Index)
 			return InputDevices[Index]->GetInputs();
 	if (Index == 0)
 		return InputDevices[2]->GetInputs();
-#endif
+#else
 	if (Index < 2)
 		return InputDevices[Index]->GetInputs();
 	return 0;
+#endif
 }
 
 void FighterGameState::UpdateLocalInput()
@@ -44,7 +46,7 @@ void FighterGameState::UpdateRemoteInput(int32_t RemoteInput)
 
 void FighterGameState::HandleRoundWin()
 {
-	if (StoredBattleState.RoundFormat < RoundFormat::TwoVsTwo)
+	if (StoredBattleState.CurRoundFormat < TwoVsTwo)
 	{
 		if (Players[0]->CurrentHealth > 0 && Players[3]->CurrentHealth <= 0)
 		{
@@ -144,76 +146,76 @@ void FighterGameState::HandleRoundWin()
 
 void FighterGameState::HandleMatchWin()
 {
-	switch (StoredBattleState.RoundFormat)
+	switch (StoredBattleState.CurRoundFormat)
 	{
-	case RoundFormat::FirstToOne:
+	case FirstToOne:
 		if (StoredBattleState.P1RoundsWon > 0 && StoredBattleState.P2RoundsWon < StoredBattleState.P1RoundsWon)
 		{
-			//UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
+			MatchWon = true;
 		}
 		else if (StoredBattleState.P2RoundsWon > 0 && StoredBattleState.P1RoundsWon < StoredBattleState.P2RoundsWon)
 		{
-			//UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
+			MatchWon = true;
 		}
 		else if (StoredBattleState.P1RoundsWon == 2 && StoredBattleState.P2RoundsWon == 2)
 		{
-			//UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
+			MatchWon = true;
 		}
 		return;
-	case RoundFormat::FirstToTwo:
+	case FirstToTwo:
 		if (StoredBattleState.P1RoundsWon > 1 && StoredBattleState.P2RoundsWon < StoredBattleState.P1RoundsWon)
 		{
-			//UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
+			MatchWon = true;
 		}
 		else if (StoredBattleState.P2RoundsWon > 1 && StoredBattleState.P1RoundsWon < StoredBattleState.P2RoundsWon)
 		{
-			//UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
+			MatchWon = true;
 		}
 		else if (StoredBattleState.P1RoundsWon == 3 && StoredBattleState.P2RoundsWon == 3)
 		{
-			//UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
+			MatchWon = true;
 		}
 		return;
-	case RoundFormat::FirstToThree:
+	case FirstToThree:
 		if (StoredBattleState.P1RoundsWon > 2 && StoredBattleState.P2RoundsWon < StoredBattleState.P1RoundsWon)
 		{
-			//UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
+			MatchWon = true;
 		}
 		else if (StoredBattleState.P2RoundsWon > 2 && StoredBattleState.P1RoundsWon < StoredBattleState.P2RoundsWon)
 		{
-			//UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
+			MatchWon = true;
 		}
 		else if (StoredBattleState.P1RoundsWon == 4 && StoredBattleState.P2RoundsWon == 4)
 		{
-			//UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
+			MatchWon = true;
 		}
 		return;
-	case RoundFormat::FirstToFour:
+	case FirstToFour:
 		if (StoredBattleState.P1RoundsWon > 3 && StoredBattleState.P2RoundsWon < StoredBattleState.P1RoundsWon)
 		{
-			//UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
+			MatchWon = true;
 		}
 		else if (StoredBattleState.P2RoundsWon > 3 && StoredBattleState.P1RoundsWon < StoredBattleState.P2RoundsWon)
 		{
-			//UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
+			MatchWon = true;
 		}
 		else if (StoredBattleState.P1RoundsWon == 5 && StoredBattleState.P2RoundsWon == 5)
 		{
-			//UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
+			MatchWon = true;
 		}
 		return;
-	case RoundFormat::FirstToFive:
+	case FirstToFive:
 		if (StoredBattleState.P1RoundsWon > 4 && StoredBattleState.P2RoundsWon < StoredBattleState.P1RoundsWon)
 		{
-			//UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
+			MatchWon = true;
 		}
 		else if (StoredBattleState.P2RoundsWon > 4 && StoredBattleState.P1RoundsWon < StoredBattleState.P2RoundsWon)
 		{
-			//UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
+			MatchWon = true;
 		}
 		else if (StoredBattleState.P1RoundsWon == 6 && StoredBattleState.P2RoundsWon == 6)
 		{
-			//UGameplayStatics::OpenLevel(GetGameInstance(), FName(TEXT("Title")));
+			MatchWon = true;
 		}
 		return;
 	default:
@@ -282,7 +284,7 @@ void FighterGameState::Init()
 		SortedObjects[i + 6] = Objects[i];
 	}
 
-	StoredBattleState.RoundFormat = RoundFormat::FirstToTwo;
+	StoredBattleState.CurRoundFormat = FirstToTwo;
 	StoredBattleState.RoundTimer = 99 * 60;
 }
 
@@ -436,8 +438,9 @@ BattleActor* FighterGameState::AddBattleActor(State* InState, int PosX, int PosY
 	{
 		if (!Objects[i]->IsActive)
 		{
-			Objects[i]->ObjectState = (State*)malloc(sizeof InState);
-			memcpy(Objects[i]->ObjectState, InState, sizeof InState);
+		    if (Objects[i]->ObjectState != nullptr)
+		    	delete Objects[i]->ObjectState;
+			Objects[i]->ObjectState = InState->Clone();
 			Objects[i]->ObjectState->ObjectParent = Objects[i];
 			Objects[i]->IsActive = true;
 			Objects[i]->FacingRight = FacingRight;
@@ -569,18 +572,18 @@ void FighterGameState::SetWallCollision()
 	{
 		if (Players[i] != nullptr)
 		{
-			if (Players[i]->IsOnScreen)
+			if (Players[i]->IsOnScreen && Players[i]->PushCollisionActive)
 			{
 				Players[i]->TouchingWall = true;
-				if (Players[i]->GetInternalValue(VAL_PosX) >= 1080000 + StoredBattleState.CurrentScreenPos)
+				if (Players[i]->GetInternalValue(VAL_PosX) >= 900000 + StoredBattleState.CurrentScreenPos)
 				{
-					Players[i]->SetPosX(1080000 + StoredBattleState.CurrentScreenPos);
+					Players[i]->SetPosX(900001 + StoredBattleState.CurrentScreenPos);
 				}
-				else if (Players[i]->GetInternalValue(VAL_PosX) <= -1080000 + StoredBattleState.CurrentScreenPos)
+				else if (Players[i]->GetInternalValue(VAL_PosX) <= -900000 + StoredBattleState.CurrentScreenPos)
 				{
-					Players[i]->SetPosX(-1080000 + StoredBattleState.CurrentScreenPos);
+					Players[i]->SetPosX(-900001 + StoredBattleState.CurrentScreenPos);
 				}
-				else if (Players[i]->GetInternalValue(VAL_PosX) <= 1080000 + StoredBattleState.CurrentScreenPos || Players[i]->GetInternalValue(VAL_PosX) >= -1080000 + StoredBattleState.CurrentScreenPos)
+				else if (Players[i]->GetInternalValue(VAL_PosX) <= 900000 + StoredBattleState.CurrentScreenPos || Players[i]->GetInternalValue(VAL_PosX) >= -1080000 + StoredBattleState.CurrentScreenPos)
 				{
 					Players[i]->TouchingWall = false;
 				}
@@ -603,13 +606,13 @@ void FighterGameState::SetScreenBounds()
 					{
 					    int NewScreenPos = (Players[i]->GetInternalValue(VAL_PosX) + Players[j]->GetInternalValue(VAL_PosX)) / 2;
 						StoredBattleState.CurrentScreenPos = StoredBattleState.CurrentScreenPos + (NewScreenPos - StoredBattleState.CurrentScreenPos) * 10 / 100;
-						if (StoredBattleState.CurrentScreenPos > 1080000)
+						if (StoredBattleState.CurrentScreenPos > 900000)
 						{
-							StoredBattleState.CurrentScreenPos = 1080000;
+							StoredBattleState.CurrentScreenPos = 900000;
 						}
-						else if (StoredBattleState.CurrentScreenPos < -1080000)
+						else if (StoredBattleState.CurrentScreenPos < -900000)
 						{
-							StoredBattleState.CurrentScreenPos = -1080000;
+							StoredBattleState.CurrentScreenPos = -900000;
 						}
 					}
 				}

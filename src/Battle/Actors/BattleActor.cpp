@@ -4,7 +4,9 @@
 #include "FighterGameState.h"
 #include "PlayerCharacter.h"
 #include "../State.h"
-#include "../../SpriteList.h"
+#include <cstdlib>
+
+#include "Data/CollisionData.h"
 #include "../Globals.h"
 
 BattleActor::BattleActor()
@@ -34,6 +36,10 @@ void BattleActor::InitObject()
 	Hitstop = 0;
 	if (PosY == 0 && PrevPosY != 0)
 		Gravity = 1900;
+	for (int32_t i = 0; i < CollisionArraySize; i++)
+	{
+		CollisionBoxes[i] = CollisionBox();
+	}
 	ObjectState->OnEnter();
 	ObjectState->OnUpdate(0);
 }
@@ -49,6 +55,31 @@ void BattleActor::Update()
 	{
 		InitObject();
 		InitOnNextFrame = false;
+		return;
+	}
+
+	//run input buffer before checking hitstop
+	if (IsPlayer && Player != nullptr)
+	{
+		if (!FacingRight && !Player->FlipInputs || Player->FlipInputs && FacingRight) //flip inputs with direction
+		{
+			const unsigned int Bit1 = (Player->Inputs >> 2) & 1;
+			const unsigned int Bit2 = (Player->Inputs >> 3) & 1;
+			unsigned int x = (Bit1 ^ Bit2);
+
+			x = x << 2 | x << 3;
+
+			Player->Inputs = Player->Inputs ^ x;
+		}
+			
+		if (!Player->Inputs << 27) //if no direction, set neutral input
+		{
+			Player->Inputs |= (int)InputNeutral;
+		}
+		else
+		{
+			Player->Inputs = Player->Inputs & ~(int)InputNeutral; //remove neutral input if directional input
+		}
 	}
 
 	//run input buffer before checking hitstop
@@ -114,7 +145,7 @@ void BattleActor::Update()
 	}
 	else
 	{
-		Player->StateMachine.Tick(0.0166666); //update current state
+		Player->CurStateMachine.Tick(0.0166666); //update current state
 	}
 
 	GetBoxes(); //get boxes from cel name
@@ -123,7 +154,7 @@ void BattleActor::Update()
 	
 	Move(); //handle movement
 	
-	AnimTime++; //increments counters
+	AnimTime++; //increment counters
 	ActionTime++;
 	
 	if (IsPlayer) //initializes player only values
@@ -151,12 +182,12 @@ void BattleActor::Update()
 			if (Player->PlayerIndex == 0)
 			{
 				FacingRight = true;
-				PosX = -360000;
+				PosX = -300000;
 			}
 			else
 			{
 				FacingRight = false;
-				PosX = 360000;
+				PosX = 300000;
 			}
 		}
 	}
@@ -254,13 +285,238 @@ void BattleActor::Move()
 	}
 	if (ScreenCollisionActive)
 	{
-		if (PosX < -2160000)
+		if (PosX < -1800000)
 		{
-			PosX = -2160000;
+			PosX = -1800001;
 		}
-		else if (PosX > 2160000)
+		else if (PosX > 1800000)
 		{
-			PosX = 2160000;
+			PosX = 1800001;
+		}
+	}
+}
+
+void BattleActor::CalculateHoming()
+{
+	if (Homing.Target != OBJ_Null)
+	{
+		BattleActor* Target = GetBattleActor(Homing.Target);
+
+		if (Target != nullptr)
+		{
+			int32_t TargetPosX = 0;
+			int32_t TargetPosY = 0;
+
+			Target->PosTypeToPosition(Homing.Pos, &TargetPosX, &TargetPosY);
+			
+			bool TargetFacingRight = Target->FacingRight;
+			int32_t HomingOffsetX = -Homing.OffsetX;
+			if (!TargetFacingRight)
+				HomingOffsetX = -HomingOffsetX;
+			
+			if (Homing.Type == HOMING_DistanceAccel)
+			{
+				SetSpeedXPercentPerFrame(Homing.ParamB);
+				SetSpeedYPercentPerFrame(Homing.ParamB);
+				AddSpeedXRaw(Homing.ParamA * (TargetPosX - PosX) / 100);
+				AddSpeedY(Homing.ParamA * (TargetPosY - PosY) / 100);
+			}
+			else if (Homing.Type == HOMING_FixAccel)
+			{
+				int32_t TmpPosY = TargetPosY + Homing.OffsetY - PosY;
+				int32_t TmpPosX = TargetPosX + HomingOffsetX - PosX;
+				int32_t Angle = Vec2Angle_x1000(TmpPosX, TmpPosY) / 100;
+				SetSpeedXPercentPerFrame(Homing.ParamB);
+				SetSpeedYPercentPerFrame(Homing.ParamB);
+				int32_t CosParamA = Homing.ParamA * Cos_x1000(Angle) / 1000; 
+				int32_t SinParamA = Homing.ParamA * Sin_x1000(Angle) / 1000; 
+				AddSpeedXRaw(CosParamA);
+				AddSpeedY(SinParamA);
+			}
+			else if (Homing.Type == HOMING_ToSpeed)
+			{
+				int32_t TmpPosY = TargetPosY + Homing.OffsetY - PosY;
+				int32_t TmpPosX = TargetPosX + HomingOffsetX - PosX;
+				int32_t Angle = Vec2Angle_x1000(TmpPosX, TmpPosY) / 100;
+				int32_t CosParamA = Homing.ParamA * Cos_x1000(Angle) / 1000; 
+				int32_t SinParamA = Homing.ParamA * Sin_x1000(Angle) / 1000; 
+				if (Homing.ParamB <= 0)
+				{
+					if (Homing.ParamB >= 0)
+					{
+						CosParamA = SpeedX;
+					}
+					else if (SpeedX < CosParamA)
+					{
+						CosParamA = Homing.ParamB + SpeedX;
+					}
+					int32_t TmpParamB = Homing.ParamB;
+					while (SpeedX - CosParamA <= TmpParamB)
+					{
+						SetSpeedXRaw(CosParamA);
+						if (TmpParamB <= 0)
+						{
+							if (TmpParamB >= 0)
+							{
+								SinParamA = SpeedY;
+								SetSpeedY(SinParamA);
+								return;
+							}
+							if (SpeedY < SinParamA)
+							{
+								SinParamA = SpeedY + TmpParamB;
+								SetSpeedY(SinParamA);
+								return;
+							}
+						}
+						else
+						{
+							if (SpeedY < SinParamA)
+							{
+								if (SinParamA - SpeedY > TmpParamB)
+								{
+									SinParamA = SpeedY + TmpParamB;
+								}
+							}
+							if (SpeedY - SinParamA <= TmpParamB)
+							{
+								SetSpeedY(SinParamA);
+								return;
+							}
+						}
+						SinParamA = SpeedY - TmpParamB;
+						SetSpeedY(SinParamA);
+						return;
+					}
+				}
+				else
+				{
+					if (SpeedX < CosParamA)
+					{
+						if (CosParamA - SpeedX > Homing.ParamB)
+						{
+							CosParamA = Homing.ParamB + SpeedX;
+						}
+						int32_t TmpParamB = Homing.ParamB;
+						while (SpeedX - CosParamA <= TmpParamB)
+						{
+							SetSpeedXRaw(CosParamA);
+							if (TmpParamB <= 0)
+							{
+								if (TmpParamB >= 0)
+								{
+									SinParamA = SpeedY;
+									SetSpeedY(SinParamA);
+									return;
+								}
+								if (SpeedY < SinParamA)
+								{
+									SinParamA = SpeedY + TmpParamB;
+									SetSpeedY(SinParamA);
+									return;
+								}
+							}
+							else
+							{
+								if (SpeedY < SinParamA)
+								{
+									if (SinParamA - SpeedY > TmpParamB)
+									{
+										SinParamA = SpeedY + TmpParamB;
+									}
+								}
+								if (SpeedY - SinParamA <= TmpParamB)
+								{
+									SetSpeedY(SinParamA);
+									return;
+								}
+							}
+							SinParamA = SpeedY - TmpParamB;
+							SetSpeedY(SinParamA);
+							return;
+						}
+					}
+					if (SpeedX - CosParamA <= Homing.ParamB)
+					{
+						int32_t TmpParamB = Homing.ParamB;
+						while (SpeedX - CosParamA <= TmpParamB)
+						{
+							SetSpeedXRaw(CosParamA);
+							if (TmpParamB <= 0)
+							{
+								if (TmpParamB >= 0)
+								{
+									SinParamA = SpeedY;
+									SetSpeedY(SinParamA);
+									return;
+								}
+								if (SpeedY < SinParamA)
+								{
+									SinParamA = SpeedY + TmpParamB;
+									SetSpeedY(SinParamA);
+									return;
+								}
+							}
+							else
+							{
+								if (SpeedY < SinParamA)
+								{
+									if (SinParamA - SpeedY > TmpParamB)
+									{
+										SinParamA = SpeedY + TmpParamB;
+									}
+								}
+								if (SpeedY - SinParamA <= TmpParamB)
+								{
+									SetSpeedY(SinParamA);
+									return;
+								}
+							}
+							SinParamA = SpeedY - TmpParamB;
+							SetSpeedY(SinParamA);
+							return;
+						}
+					}
+				}
+				int32_t TmpParamB = Homing.ParamB;
+				while (SpeedX - CosParamA <= TmpParamB)
+				{
+					SetSpeedXRaw(CosParamA);
+					if (TmpParamB <= 0)
+					{
+						if (TmpParamB >= 0)
+						{
+							SinParamA = SpeedY;
+							SetSpeedY(SinParamA);
+							return;
+						}
+						if (SpeedY < SinParamA)
+						{
+							SinParamA = SpeedY + TmpParamB;
+							SetSpeedY(SinParamA);
+							return;
+						}
+					}
+					else
+					{
+						if (SpeedY < SinParamA)
+						{
+							if (SinParamA - SpeedY > TmpParamB)
+							{
+								SinParamA = SpeedY + TmpParamB;
+							}
+						}
+						if (SpeedY - SinParamA <= TmpParamB)
+						{
+							SetSpeedY(SinParamA);
+							return;
+						}
+					}
+					SinParamA = SpeedY - TmpParamB;
+					SetSpeedY(SinParamA);
+					return;
+				}
+			}
 		}
 	}
 }
@@ -1021,7 +1277,46 @@ void BattleActor::EnableFlip(bool Enabled)
 
 void BattleActor::GetBoxes()
 {
-	//reimplement for new engine
+	for (int i = 0; i < CollisionArraySize; i++)
+	{
+		CollisionBoxes[i].Type = BoxType::Hurtbox;
+		CollisionBoxes[i].PosX = -24000000;
+		CollisionBoxes[i].PosY = -24000000;
+		CollisionBoxes[i].SizeX = 0;
+		CollisionBoxes[i].SizeY = 0;
+	}
+	for (int i = 0; i < Player->ColData.size(); i++)
+	{
+		if (!strcmp(Player->ColData[i]->Name.GetString(), CelNameInternal.GetString()))
+		{
+			for (int j = 0; j < CollisionArraySize; j++)
+			{
+				if (Player->ColData[i]->BoxTypeCount > 0)
+				{
+					if (j < Player->ColData[i]->HurtCount)
+					{
+						CollisionBoxes[j].Type = BoxType::Hurtbox;
+						CollisionBoxes[j].PosX = Player->ColData[i]->Boxes[j].PosX;
+						CollisionBoxes[j].PosY = Player->ColData[i]->Boxes[j].PosY;
+						CollisionBoxes[j].SizeX = Player->ColData[i]->Boxes[j].SizeX;
+						CollisionBoxes[j].SizeY = Player->ColData[i]->Boxes[j].SizeY;
+					}
+				}
+				if (Player->ColData[i]->BoxTypeCount > 1)
+				{
+					if (j < Player->ColData[i]->HitCount + Player->ColData[i]->HurtCount)
+					{
+						CollisionBoxes[j].Type = BoxType::Hitbox;
+						CollisionBoxes[j].PosX = Player->ColData[i]->Boxes[j].PosX;
+						CollisionBoxes[j].PosY = Player->ColData[i]->Boxes[j].PosY;
+						CollisionBoxes[j].SizeX = Player->ColData[i]->Boxes[j].SizeX;
+						CollisionBoxes[j].SizeY = Player->ColData[i]->Boxes[j].SizeY;
+					}
+				}
+			}
+			return;
+		}
+	}
 }
 
 void BattleActor::HandleHitCollision(PlayerCharacter* OtherChar)
@@ -1032,11 +1327,11 @@ void BattleActor::HandleHitCollision(PlayerCharacter* OtherChar)
 		{
 			for (int i = 0; i < CollisionArraySize; i++)
 			{
-				if (CollisionBoxes[i].Type == Hitbox)
+				if (CollisionBoxes[i].Type == BoxType::Hitbox)
 				{
 					for (int j = 0; j < CollisionArraySize; j++)
 					{
-						if (OtherChar->CollisionBoxes[j].Type == Hurtbox)
+						if (OtherChar->CollisionBoxes[j].Type == BoxType::Hurtbox)
 						{
 							CollisionBox Hitbox = CollisionBoxes[i];
 
@@ -1085,13 +1380,11 @@ void BattleActor::HandleHitCollision(PlayerCharacter* OtherChar)
 								HitPosY = Hitbox.PosY - CollisionDepthY / 2;
 								
 								if (IsPlayer)
-									Player->StateMachine.CurrentState->OnHitOrBlock();
+									Player->CurStateMachine.CurrentState->OnHitOrBlock();
 								else
 									ObjectState->OnHitOrBlock();
-
-								if ((OtherChar->CurrentEnableFlags & ENB_Block || OtherChar->Blockstun > 0 || 
-									strcmp(OtherChar->GetCurrentStateName().GetString(), "Crouch") == 0)
-									&& OtherChar->IsCorrectBlock(NormalHitEffect.BlockType)) //check blocking
+								
+								if ((OtherChar->CurrentEnableFlags & ENB_Block || OtherChar->Blockstun > 0) && OtherChar->IsCorrectBlock(NormalHitEffect.CurBlockType)) //check blocking
 								{
 									CreateCommonParticle("cmn_guard", POS_Hit, Vector(0, 0), -NormalHitEffect.HitAngle);
 									if (NormalHitEffect.AttackLevel < 1)
@@ -1143,7 +1436,7 @@ void BattleActor::HandleHitCollision(PlayerCharacter* OtherChar)
 										}
 									}
 									if (IsPlayer)
-										Player->StateMachine.CurrentState->OnBlock();
+										Player->CurStateMachine.CurrentState->OnBlock();
 									else
 										ObjectState->OnBlock();
 									OtherChar->Hitstop = NormalHitEffect.Hitstop;
@@ -1186,8 +1479,8 @@ void BattleActor::HandleHitCollision(PlayerCharacter* OtherChar)
 											case HACT_AirFaceUp:
 											case HACT_AirVertical:
 											case HACT_AirFaceDown:
-												OtherChar->CurrentGroundBounceEffect = NormalHitEffect.GroundBounceEffect;
-												OtherChar->CurrentWallBounceEffect = NormalHitEffect.WallBounceEffect;
+												OtherChar->CurrentGroundBounceEffect = NormalHitEffect.CurGroundBounceEffect;
+												OtherChar->CurrentWallBounceEffect = NormalHitEffect.CurWallBounceEffect;
 												OtherChar->Untech = NormalHitEffect.Untech;
 												OtherChar->Hitstun = -1;
 												OtherChar->KnockdownTime = NormalHitEffect.KnockdownTime;
@@ -1210,8 +1503,8 @@ void BattleActor::HandleHitCollision(PlayerCharacter* OtherChar)
 												}
 												break;
 											case HACT_Blowback:
-												OtherChar->CurrentGroundBounceEffect = NormalHitEffect.GroundBounceEffect;
-												OtherChar->CurrentWallBounceEffect = NormalHitEffect.WallBounceEffect;
+												OtherChar->CurrentGroundBounceEffect = NormalHitEffect.CurGroundBounceEffect;
+												OtherChar->CurrentWallBounceEffect = NormalHitEffect.CurWallBounceEffect;
 												OtherChar->Untech = NormalHitEffect.Untech;
 												OtherChar->Hitstun = -1;
 												OtherChar->KnockdownTime = NormalHitEffect.KnockdownTime;
@@ -1268,8 +1561,8 @@ void BattleActor::HandleHitCollision(PlayerCharacter* OtherChar)
 											case HACT_AirFaceUp:
 											case HACT_AirVertical:
 											case HACT_AirFaceDown:
-												OtherChar->CurrentGroundBounceEffect = NormalHitEffect.GroundBounceEffect;
-												OtherChar->CurrentWallBounceEffect = NormalHitEffect.WallBounceEffect;
+												OtherChar->CurrentGroundBounceEffect = NormalHitEffect.CurGroundBounceEffect;
+												OtherChar->CurrentWallBounceEffect = NormalHitEffect.CurWallBounceEffect;
 												OtherChar->Untech = NormalHitEffect.Untech;
 												OtherChar->Hitstun = -1;
 												OtherChar->KnockdownTime = NormalHitEffect.KnockdownTime;
@@ -1292,8 +1585,8 @@ void BattleActor::HandleHitCollision(PlayerCharacter* OtherChar)
 												}
 												break;
 											case HACT_Blowback:
-												OtherChar->CurrentGroundBounceEffect = NormalHitEffect.GroundBounceEffect;
-												OtherChar->CurrentWallBounceEffect = NormalHitEffect.WallBounceEffect;
+												OtherChar->CurrentGroundBounceEffect = NormalHitEffect.CurGroundBounceEffect;
+												OtherChar->CurrentWallBounceEffect = NormalHitEffect.CurWallBounceEffect;
 												OtherChar->Untech = NormalHitEffect.Untech;
 												OtherChar->Hitstun = -1;
 												OtherChar->KnockdownTime = NormalHitEffect.KnockdownTime;
@@ -1364,7 +1657,7 @@ void BattleActor::HandleHitCollision(PlayerCharacter* OtherChar)
 											OtherChar->SetSpeedY(NormalHitEffect.AirHitPushbackY / 2);
 											OtherChar->AirDashTimer = 0;
 										}
-										OtherChar->HandleBlockAction(NormalHitEffect.BlockType);
+										OtherChar->HandleBlockAction(NormalHitEffect.CurBlockType);
 									}
 									OtherChar->AddMeter(NormalHitEffect.HitDamage * OtherChar->MeterPercentOnReceiveHitGuard / 100);
 									Player->AddMeter(NormalHitEffect.HitDamage * Player->MeterPercentOnHitGuard / 100);
@@ -1373,7 +1666,7 @@ void BattleActor::HandleHitCollision(PlayerCharacter* OtherChar)
 								{
 									OtherChar->DeathCamOverride = NormalHitEffect.DeathCamOverride;
 									if (IsPlayer)
-										Player->StateMachine.CurrentState->OnHit();
+										Player->CurStateMachine.CurrentState->OnHit();
 									else
 										ObjectState->OnHit();
 									HandleHitEffect(OtherChar, NormalHitEffect);
@@ -1382,7 +1675,7 @@ void BattleActor::HandleHitCollision(PlayerCharacter* OtherChar)
 								{
 									OtherChar->DeathCamOverride = CounterHitEffect.DeathCamOverride;
 									if (IsPlayer)
-										Player->StateMachine.CurrentState->OnCounterHit();
+										Player->CurStateMachine.CurrentState->OnCounterHit();
 									else
 										ObjectState->OnCounterHit();
 									HandleHitEffect(OtherChar, CounterHitEffect);
@@ -1566,8 +1859,8 @@ void BattleActor::HandleHitEffect(PlayerCharacter* OtherChar, HitEffect InHitEff
 		case HACT_AirFaceUp:
 		case HACT_AirVertical:
 		case HACT_AirFaceDown:
-			OtherChar->CurrentGroundBounceEffect = InHitEffect.GroundBounceEffect;
-			OtherChar->CurrentWallBounceEffect = InHitEffect.WallBounceEffect;
+			OtherChar->CurrentGroundBounceEffect = InHitEffect.CurGroundBounceEffect;
+			OtherChar->CurrentWallBounceEffect = InHitEffect.CurWallBounceEffect;
 			OtherChar->Untech = FinalUntech;
 			OtherChar->Hitstun = -1;
 			OtherChar->KnockdownTime = InHitEffect.KnockdownTime;
@@ -1593,8 +1886,8 @@ void BattleActor::HandleHitEffect(PlayerCharacter* OtherChar, HitEffect InHitEff
 				OtherChar->PosY = 1;
 			break;
 		case HACT_Blowback:
-			OtherChar->CurrentGroundBounceEffect = InHitEffect.GroundBounceEffect;
-			OtherChar->CurrentWallBounceEffect = InHitEffect.WallBounceEffect;
+			OtherChar->CurrentGroundBounceEffect = InHitEffect.CurGroundBounceEffect;
+			OtherChar->CurrentWallBounceEffect = InHitEffect.CurWallBounceEffect;
 			OtherChar->Untech = FinalUntech;
 			OtherChar->Hitstun = -1;
 			OtherChar->KnockdownTime = InHitEffect.KnockdownTime;
@@ -1675,8 +1968,8 @@ void BattleActor::HandleHitEffect(PlayerCharacter* OtherChar, HitEffect InHitEff
 		case HACT_AirFaceUp:
 		case HACT_AirVertical:
 		case HACT_AirFaceDown:
-			OtherChar->CurrentGroundBounceEffect = InHitEffect.GroundBounceEffect;
-			OtherChar->CurrentWallBounceEffect = InHitEffect.WallBounceEffect;
+			OtherChar->CurrentGroundBounceEffect = InHitEffect.CurGroundBounceEffect;
+			OtherChar->CurrentWallBounceEffect = InHitEffect.CurWallBounceEffect;
 			OtherChar->Untech = FinalUntech;
 			OtherChar->Hitstun = -1;
 			OtherChar->KnockdownTime = InHitEffect.KnockdownTime;
@@ -1702,8 +1995,8 @@ void BattleActor::HandleHitEffect(PlayerCharacter* OtherChar, HitEffect InHitEff
 				OtherChar->PosY = 1;
 			break;
 		case HACT_Blowback:
-			OtherChar->CurrentGroundBounceEffect = InHitEffect.GroundBounceEffect;
-			OtherChar->CurrentWallBounceEffect = InHitEffect.WallBounceEffect;
+			OtherChar->CurrentGroundBounceEffect = InHitEffect.CurGroundBounceEffect;
+			OtherChar->CurrentWallBounceEffect = InHitEffect.CurWallBounceEffect;
 			OtherChar->Untech = FinalUntech;
 			OtherChar->Hitstun = -1;
 			OtherChar->KnockdownTime = InHitEffect.KnockdownTime;
@@ -1967,7 +2260,7 @@ void BattleActor::HandleHitEffect(PlayerCharacter* OtherChar, HitEffect InHitEff
 	}
 	else if (IsPlayer)
 	{
-		if (Player->StateMachine.CurrentState->Type == StateType::SpecialAttack || Player->StateMachine.CurrentState->Type == StateType::SuperAttack)
+		if (Player->CurStateMachine.CurrentState->Type == StateType::SpecialAttack || Player->CurStateMachine.CurrentState->Type == StateType::SuperAttack)
 		{
 			CreateCommonParticle("cmn_hit_sp", POS_Hit, Vector(0, 0), -NormalHitEffect.HitAngle);
 			if (InHitEffect.AttackLevel < 1)
@@ -2115,11 +2408,12 @@ void BattleActor::HandleClashCollision(BattleActor* OtherObj)
 	{
 		for (int32_t i = 0; i < CollisionArraySize; i++)
 		{
+			BoxType Hitbox;
 			if (CollisionBoxes[i].Type == Hitbox)
 			{
 				for (int32_t j = 0; j < CollisionArraySize; j++)
 				{
-					if (OtherObj->CollisionBoxes[j].Type == Hitbox)
+					if (OtherObj->CollisionBoxes[j].Type == BoxType::Hitbox)
 					{
 						CollisionBox Hitbox = CollisionBoxes[i];
 
@@ -2161,6 +2455,8 @@ void BattleActor::HandleClashCollision(BattleActor* OtherObj)
 								CollisionDepthY = Hitbox.PosY - Hitbox.SizeY / 2 - (OtherHitbox.PosY + OtherHitbox.SizeY / 2);
 							HitPosX = Hitbox.PosX - CollisionDepthX / 2;
 							HitPosY = Hitbox.PosY - CollisionDepthY / 2;
+
+							CreateCommonParticle("cmn_hit_clash", POS_Hit, Vector(0, 0), 0);
 							
 							if (IsPlayer && OtherObj->IsPlayer)
 							{
@@ -2171,11 +2467,9 @@ void BattleActor::HandleClashCollision(BattleActor* OtherObj)
 								OtherObj->HitPosX = HitPosX;
 								OtherObj->HitPosY = HitPosY;
 								Player->EnableAttacks();
-								Player->EnableCancelIntoSelf(true);
-								Player->StateMachine.CurrentState->OnHitOrBlock();
 								OtherObj->Player->EnableAttacks();
-								CreateCommonParticle("cmn_hit_clash", POS_Hit);
-                                PlayCommonSound("HitClash");
+								OtherObj->Player->CurStateMachine.CurrentState->OnHitOrBlock();
+								Player->CurStateMachine.CurrentState->OnHitOrBlock();
 								return;
 							}
 							if (!IsPlayer && !OtherObj->IsPlayer)
@@ -2188,7 +2482,7 @@ void BattleActor::HandleClashCollision(BattleActor* OtherObj)
 								OtherObj->HitPosY = HitPosY;
 								OtherObj->ObjectState->OnHitOrBlock();
 								ObjectState->OnHitOrBlock();
-								CreateCommonParticle("cmn_hit_clash", POS_Hit);
+								CreateCommonParticle("cmn_hit_clash", POS_Hit, Vector(0,0), 0);
                                 PlayCommonSound("HitClash");
 								return;
 							}
@@ -2219,7 +2513,7 @@ void BattleActor::HandleFlip()
 		Inertia = -Inertia;
 		if (IsPlayer)
 		{
-			Player->InputBuffer.FlipInputsInBuffer();
+			Player->CurInputBuffer.FlipInputsInBuffer();
 			if (Player->CurrentActionFlags == ACT_Standing && Player->CurrentEnableFlags & ENB_Standing)
 				Player->JumpToState("StandFlip");
 			else if (Player->CurrentActionFlags == ACT_Crouching && Player->CurrentEnableFlags & ENB_Crouching)
@@ -2297,127 +2591,6 @@ void BattleActor::SetHitEffect(HitEffect InHitEffect)
 void BattleActor::SetCounterHitEffect(HitEffect InHitEffect)
 {
 	CounterHitEffect = InHitEffect;
-}
-
-void BattleActor::CreateCommonParticle(char* Name, PosType PosType, Vector Offset, int32_t Angle)
-{
-	/*if (Player->CommonParticleData != nullptr)
-	{
-		for (FParticleStruct ParticleStruct : Player->CommonParticleData->ParticleDatas)
-		{
-			if (ParticleStruct.Name == Name)
-			{
-				FVector FinalLocation;
-				if (!FacingRight)
-					Offset = FVector(Offset.X, -Offset.Y, Offset.Z);
-				switch (PosType)
-				{
-				case POS_Player:
-					FinalLocation = Offset + GetActorLocation();
-					break;
-				case POS_Enemy:
-					FinalLocation = Offset + Player->Enemy->GetActorLocation();
-					break;
-				case POS_Hit:
-					FinalLocation = Offset + FVector(0, HitPosX / COORD_SCALE, HitPosY / COORD_SCALE);
-					break;
-				default:
-					FinalLocation = Offset + GetActorLocation();
-					break;
-				}
-				GameState->ParticleManager->NiagaraComponents.Add(UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, ParticleStruct.ParticleSystem, FinalLocation, Rotation, GetActorScale()));
-				GameState->ParticleManager->NiagaraComponents.Last()->SetAgeUpdateMode(ENiagaraAgeUpdateMode::DesiredAge);
-				GameState->ParticleManager->NiagaraComponents.Last()->SetNiagaraVariableBool("NeedsRollback", true);
-				GameState->ParticleManager->NiagaraComponents.Last()->SetNiagaraVariableFloat("SpriteRotate", Rotation.Pitch);
-				if (!FacingRight)
-				{
-					GameState->ParticleManager->NiagaraComponents.Last()->SetNiagaraVariableVec2("UVScale", Vector(-1, 1));
-					GameState->ParticleManager->NiagaraComponents.Last()->SetNiagaraVariableVec2("PivotOffset", Vector(0, 0.5));
-					GameState->ParticleManager->NiagaraComponents.Last()->SetNiagaraVariableFloat("SpriteRotate", -Rotation.Pitch);
-				}
-				break;
-			}
-		}
-	}*/
-}
-
-void BattleActor::CreateCharaParticle(char* Name, PosType PosType, Vector Offset, int32_t Angle)
-{
-	/*if (Player->ParticleData != nullptr)
-	{
-		for (FParticleStruct ParticleStruct : Player->ParticleData->ParticleDatas)
-		{
-			if (ParticleStruct.Name == Name)
-			{
-				FVector FinalLocation;
-				if (!FacingRight)
-					Offset = FVector(Offset.X, -Offset.Y, Offset.Z);
-				switch (PosType)
-				{
-				case POS_Player:
-					FinalLocation = Offset + GetActorLocation();
-					break;
-				case POS_Enemy:
-					FinalLocation = Offset + Player->Enemy->GetActorLocation();
-					break;
-				case POS_Hit:
-					FinalLocation = Offset + FVector(0, HitPosX / COORD_SCALE, HitPosY / COORD_SCALE);
-					break;
-				default:
-					FinalLocation = Offset + GetActorLocation();
-					break;
-				}
-				GameState->ParticleManager->NiagaraComponents.Add(UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, ParticleStruct.ParticleSystem, FinalLocation, Rotation, GetActorScale()));
-				GameState->ParticleManager->NiagaraComponents.Last()->SetAgeUpdateMode(ENiagaraAgeUpdateMode::DesiredAge);
-				GameState->ParticleManager->NiagaraComponents.Last()->SetNiagaraVariableBool("NeedsRollback", true);
-				GameState->ParticleManager->NiagaraComponents.Last()->SetNiagaraVariableFloat("SpriteRotate", Rotation.Pitch);
-				if (!FacingRight)
-				{
-					GameState->ParticleManager->NiagaraComponents.Last()->SetNiagaraVariableVec2("UVScale", Vector(-1, 1));
-					GameState->ParticleManager->NiagaraComponents.Last()->SetNiagaraVariableVec2("PivotOffset", Vector(0, 1));
-					GameState->ParticleManager->NiagaraComponents.Last()->SetNiagaraVariableFloat("SpriteRotate", -Rotation.Pitch);
-				}
-				break;
-			}
-		}
-	}*/
-}
-
-void BattleActor::LinkCharaParticle(char* Name)
-{
-	/*if (Player->ParticleData != nullptr)
-	{
-		for (FParticleStruct ParticleStruct : Player->ParticleData->ParticleDatas)
-		{
-			if (ParticleStruct.Name == Name)
-			{
-				FVector Scale;
-				if (!FacingRight)
-				{
-					Scale = FVector(1, -1, 1);
-				}
-				else
-				{
-					Scale = FVector(1, 1, 1);
-				}
-				GameState->ParticleManager->NiagaraComponents.Add(UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, ParticleStruct.ParticleSystem, GetActorLocation(), FRotator::ZeroRotator, Scale));
-				GameState->ParticleManager->NiagaraComponents.Last()->SetAgeUpdateMode(ENiagaraAgeUpdateMode::DesiredAge);
-				GameState->ParticleManager->NiagaraComponents.Last()->SetNiagaraVariableBool("NeedsRollback", true);
-				LinkedParticle = GameState->ParticleManager->NiagaraComponents.Last();
-				if (!FacingRight)
-					GameState->ParticleManager->NiagaraComponents.Last()->SetNiagaraVariableVec2("UVScale", Vector(-1, 1));
-				break;
-			}
-		}
-	}*/
-}
-
-void BattleActor::PlayCommonSound(char* Name)
-{
-}
-
-void BattleActor::PlayCharaSound(char* Name)
-{
 }
 
 void BattleActor::PauseRoundTimer(bool Pause)
@@ -2561,7 +2734,9 @@ void BattleActor::LoadForRollback(unsigned char* Buffer)
 		}
 		if (strcmp(Player->ObjectStateNames[Index].GetString(), ObjectStateName.GetString()))
 		{
-			memcpy(ObjectState, Player->ObjectStates[Index], sizeof(State));
+		    if (ObjectState != nullptr)
+		    	delete ObjectState;
+			ObjectState = Player->ObjectStates[Index]->Clone();
 			ObjectState->ObjectParent = this;
 		}
 	}

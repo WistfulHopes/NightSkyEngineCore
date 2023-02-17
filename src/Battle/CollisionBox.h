@@ -1,10 +1,11 @@
 #pragma once
 #pragma pack (push, 1)
 
-enum BoxType
+enum class BoxType
 {
 	Hurtbox,
 	Hitbox,
+	Count,
 };
 
 struct CollisionBox

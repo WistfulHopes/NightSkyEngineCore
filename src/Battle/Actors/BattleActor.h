@@ -4,6 +4,9 @@
 #include "../CollisionBox.h"
 #include <cstdint>
 #include <cstdio>
+#include <cstdio>
+#include <functional>
+#include <cstddef>
 
 #pragma pack (push, 1)
 
@@ -162,7 +165,7 @@ struct GroundBounceEffect
 struct HitEffect
 {
 	int32_t AttackLevel = 0;
-	BlockType BlockType = BLK_Mid;
+	BlockType CurBlockType = BLK_Mid;
 	int32_t Hitstun = 0;
 	int32_t Blockstun = 0;
 	int32_t Untech = 0;
@@ -181,8 +184,8 @@ struct HitEffect
 	HitAction GroundHitAction = HACT_GroundNormal;
 	HitAction AirHitAction = HACT_AirNormal;
 	int32_t KnockdownTime = 25;
-	GroundBounceEffect GroundBounceEffect;
-	WallBounceEffect WallBounceEffect;
+	GroundBounceEffect CurGroundBounceEffect;
+	WallBounceEffect CurWallBounceEffect;
 	HitSFXType SFXType = HitSFXType::SFX_Punch;
 	HitVFXType VFXType = HitVFXType::VFX_Strike;
 	bool DeathCamOverride = false;
@@ -216,8 +219,10 @@ class BattleActor
 public:
 	BattleActor();
 
-	virtual ~BattleActor() {}
-	
+	virtual ~BattleActor()
+	{
+	}
+
 	unsigned char ObjSync; //starting from this until ObjSyncEnd, everything is saved/loaded for rollback
 	bool IsActive = false;
 protected:
@@ -258,6 +263,8 @@ protected:
 	int32_t SpeedYPercent = 100;
 	bool SpeedYPercentPerFrame = false;
 	bool ScreenCollisionActive = false;
+
+public:
 	bool PushCollisionActive = false;
 	bool ProrateOnce = false;
 public:
@@ -271,7 +278,7 @@ public:
 	int32_t StateVal7 = 0;
 	int32_t StateVal8 = 0;
 	int32_t StoredRegister = 0;
-	
+
 	bool FacingRight = true;
 	int32_t MiscFlags = 0;
 	//disabled if not player
@@ -290,27 +297,27 @@ public:
 	int32_t AnimTime = 0;
 
 	//for spawning hit particles
-	int32_t HitPosX;
-	int32_t HitPosY;
+	int32_t HitPosX = 0;
+	int32_t HitPosY = 0;
 
 	bool DefaultCommonAction = true;
 
 	CollisionBox CollisionBoxes[CollisionArraySize]{};
-	
+
 	CString<64> ObjectStateName;
-	uint32_t ObjectID;
+	uint32_t ObjectID = 0;
 
 	//pointer to player. if this is not a player, it will point32_t to the owning player.
-	PlayerCharacter* Player; 
+	PlayerCharacter* Player = nullptr;
 
 	//anything past here isn't saved or loaded for rollback
-	int32_t ObjSyncEnd;
+	int32_t ObjSyncEnd = 0;
+
+	State* ObjectState;
 
 	int32_t ObjNumber;
-	
-	FighterGameState* GameState;
 
-	State* ObjectState; 
+	FighterGameState* GameState;
 
 protected:
 	//move object based on speed and inertia
@@ -318,7 +325,7 @@ protected:
 	//calculates homing speed based on params
 	void CalculateHoming();
 	//get boxes based on cel name
-	void GetBoxes(); 
+	void GetBoxes();
 
 public:
 	void SaveForRollback(unsigned char* Buffer);
@@ -440,17 +447,17 @@ public:
 	//sets hit effect on counter hit
 	void SetCounterHitEffect(HitEffect InHitEffect);
 	//creates common particle
-	void CreateCommonParticle(char* Name, PosType PosType, Vector Offset = Vector(0, 0), int32_t Angle = 0);
+	std::function<void(char*, PosType, Vector, int32_t)> CreateCommonParticle;
 	//creates character particle
-	void CreateCharaParticle(char* Name, PosType PosType, Vector Offset = Vector(0, 0), int32_t Angle = 0);
+	std::function<void(char*, PosType PosType, Vector, int32_t)> CreateCharaParticle;
 	//creates common particle and attaches it to the object. only use with non-player objects.
-	void LinkCommonParticle(char* Name);
+	std::function<void(char*)> LinkCommonParticle;
 	//creates character particle and attaches it to the object. only use with non-player objects.
-	void LinkCharaParticle(char* Name);
+	std::function<void(char*)> LinkCharaParticle;
 	//plays common sound
-	void PlayCommonSound(char* Name);
+	std::function<void(char*)> PlayCommonSound;
 	//plays chara sound
-	void PlayCharaSound(char* Name);
+	std::function<void(char*)> PlayCharaSound;
 	//pauses round timer
 	void PauseRoundTimer(bool Pause);
 	//sets object id
@@ -472,4 +479,4 @@ public:
 };
 #pragma pack(pop)
 
-#define SIZEOF_BATTLEACTOR offsetof(BattleActor, ObjSyncEnd) - offsetof(BattleActor, ObjSync)
+#define SIZEOF_BATTLEACTOR offsetof(BattleActor, BattleActor::ObjSyncEnd) - offsetof(BattleActor, BattleActor::ObjSync)

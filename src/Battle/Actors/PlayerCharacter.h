@@ -8,6 +8,7 @@
 #include "../Subroutine.h"
 #pragma pack (push, 1)
 
+struct CollisionData;
 constexpr int CancelArraySize = 50;
 constexpr int MaxComponentCount = 80;
 
@@ -174,13 +175,13 @@ public:
 	int32_t PlayerVal8 = 0;
 	
 	//state machine
-	StateMachine StateMachine;
+	StateMachine CurStateMachine;
 	//input buffer
-	InputBuffer InputBuffer;
+	InputBuffer CurInputBuffer;
 
-	//chain cancels (copied from std::vector to static array)
+	//chain cancels
 	int32_t ChainCancelOptionsInternal[CancelArraySize];
-	//whiff cancels (copied from std::vector to static array)
+	//whiff cancels
     int32_t WhiffCancelOptionsInternal[CancelArraySize]; 
 	CString<64> BufferedStateName;
 	CString<64> StateName;
@@ -213,6 +214,8 @@ public:
 	ScriptAnalyzer* CommonAnalyzer;
 	ScriptAnalyzer* CommonObjAnalyzer;
 
+	std::vector<CollisionData*> ColData;
+	
 	std::vector<Subroutine*> CommonSubroutines;
 	std::vector<CString<64>> CommonSubroutineNames;
 	
@@ -223,7 +226,7 @@ public:
 	std::vector<CString<64>> CommonObjectStateNames; 
 
 	std::vector<State*> ObjectStates;
-	std::vector<CString<64>> ObjectStateNames; 
+	std::vector<CString<64>> ObjectStateNames;
 
 	std::vector<State*> CommonStates;
 	std::vector<CString<64>> CommonStateNames; 
@@ -383,15 +386,15 @@ public:
 	//sets grip position for throw
 	void SetThrowLockCel(int32_t Index);
 	//plays voice line
-	void PlayVoice(char* Name);
+	std::function<void(char*)> PlayVoice;
 	//plays common level sequence
-    void PlayCommonCameraAnim(char* Name);
+	std::function<void(char*)> PlayCommonCameraAnim;
 	//plays character level sequence
-    void PlayCharaCameraAnim(char* Name);
+	std::function<void(char*)> PlayCharaCameraAnim;
 	//starts super freeze
 	void StartSuperFreeze(int Duration);
 	//toggles hud visibility
-	void BattleHudVisibility(bool Visible);
+	std::function<void(bool)> BattleHudVisibility;
 	//disables last input
 	void DisableLastInput();
 	//creates object
@@ -402,5 +405,5 @@ public:
 	void AddBattleActorToStorage(BattleActor* InActor, int Index);
 };
 
-#define SIZEOF_PLAYERCHARACTER offsetof(PlayerCharacter, PlayerSyncEnd) - offsetof(PlayerCharacter, PlayerSync)
+#define SIZEOF_PLAYERCHARACTER offsetof(PlayerCharacter, PlayerCharacter::PlayerSyncEnd) - offsetof(PlayerCharacter, PlayerCharacter::PlayerSync)
 #pragma pack(pop)

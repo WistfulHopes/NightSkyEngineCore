@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include <cstring>
+
 template<int Size>
 class CString
 {
