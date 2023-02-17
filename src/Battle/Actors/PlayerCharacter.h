@@ -104,8 +104,8 @@ public:
 	bool WhiffCancelEnabled = false;
 	bool StrikeInvulnerable = false;
 	bool ThrowInvulnerable = false;
-	int32_t StrikeInvulnerableForTime;
-	int32_t ThrowInvulnerableForTime;
+	int32_t StrikeInvulnerableForTime = -1;
+	int32_t ThrowInvulnerableForTime = -1;
 	bool ProjectileInvulnerable = false;
 	bool HeadInvulnerable = false;
 	int RoundWinTimer = 300;

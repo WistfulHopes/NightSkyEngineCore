@@ -4,6 +4,8 @@
 #include "NightSkyScript/ScriptAnalyzer.h"
 #include <vector>
 
+#include "Bitflags.h"
+
 class PlayerCharacter;
 class BattleActor;
 

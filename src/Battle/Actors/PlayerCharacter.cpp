@@ -14,6 +14,7 @@ PlayerCharacter::PlayerCharacter()
 	CharaAnalyzer = new ScriptAnalyzer();
 	ObjAnalyzer = new ScriptAnalyzer();
 	CommonAnalyzer = new ScriptAnalyzer();
+	CommonObjAnalyzer = new ScriptAnalyzer();
 	Player = this;
 	CurStateMachine.Parent = this;
 	ScreenCollisionActive = true;
@@ -89,6 +90,12 @@ void PlayerCharacter::InitStates()
 		Subroutine->Parent = this;
 		reinterpret_cast<ScriptSubroutine*>(Subroutine)->CommonSubroutine = true;
 	}
+	CommonObjAnalyzer->Initialize(GameState->CommonObjScript, GameState->CommonObjScriptLength, &CommonObjectStates, &CommonSubroutines);
+	for (auto State : CommonObjectStates)
+	{
+		CommonObjectStateNames.push_back(State->Name);
+	}
+
 	CharaAnalyzer->Initialize(CharaScript, CharaScriptLength, &CurStateMachine.States, &Subroutines);
 	ObjAnalyzer->Initialize(ObjectScript, ObjectScriptLength, &ObjectStates, &Subroutines);
 	for (auto Subroutine : Subroutines)

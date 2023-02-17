@@ -100,6 +100,8 @@ public:
 
 	char* CommonScript;
 	uint32_t CommonScriptLength;
+	char* CommonObjScript;
+	uint32_t CommonObjScriptLength;
 
 	void Init(); //initializes game state
 	void Update(int32_t Input1, int32_t Input2); //updates game state
