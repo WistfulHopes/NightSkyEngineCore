@@ -583,7 +583,7 @@ void FighterGameState::SetWallCollision()
 				{
 					Players[i]->SetPosX(-900001 + StoredBattleState.CurrentScreenPos);
 				}
-				else if (Players[i]->GetInternalValue(VAL_PosX) <= 900000 + StoredBattleState.CurrentScreenPos || Players[i]->GetInternalValue(VAL_PosX) >= -1080000 + StoredBattleState.CurrentScreenPos)
+				else if (Players[i]->GetInternalValue(VAL_PosX) <= 900000 + StoredBattleState.CurrentScreenPos || Players[i]->GetInternalValue(VAL_PosX) >= -900000 + StoredBattleState.CurrentScreenPos)
 				{
 					Players[i]->TouchingWall = false;
 				}
