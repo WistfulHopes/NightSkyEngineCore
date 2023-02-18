@@ -54,6 +54,7 @@ bool StateMachine::SetState(CString<64> Name)
 	CurrentState = States[Index];
 
 	CurrentState->OnEnter();
+	CurrentState->OnUpdate(0);
 
 	return true;
 }
@@ -71,7 +72,7 @@ bool StateMachine::ForceSetState(CString<64> Name)
 	}
 	if (Index == StateNames.size())
 		return false;
-	if (strcmp(StateNames[Index].GetString(), Name.GetString()))
+	if (strcmp(StateNames[Index].GetString(), Name.GetString()) != 0)
 	{
 		return false;
 	}
@@ -82,6 +83,7 @@ bool StateMachine::ForceSetState(CString<64> Name)
 	CurrentState = States[Index];
 
 	CurrentState->OnEnter();
+	CurrentState->OnUpdate(0);
 
 	return true;
 }
@@ -97,7 +99,7 @@ bool StateMachine::ForceRollbackState(CString<64> Name)
 		}
 		Index++;
 	}
-	if (strcmp(StateNames[Index].GetString(), Name.GetString()))
+	if (strcmp(StateNames[Index].GetString(), Name.GetString()) != 0)
 	{
 		return false;
 	}

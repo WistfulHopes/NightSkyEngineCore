@@ -142,6 +142,7 @@ void ScriptAnalyzer::Analyze(char *Addr, BattleActor *Actor)
                     return;
                 }
             }
+            break;
         }
         case OPC_EndBlock:
         {
@@ -203,7 +204,7 @@ void ScriptAnalyzer::Analyze(char *Addr, BattleActor *Actor)
         case OPC_AddInputCondition:
             if (StateToModify)
             {
-                if (StateToModify->InputConditionList.size() == 0)
+                if (StateToModify->InputConditionList.empty())
                     StateToModify->InputConditionList.push_back(InputConditionList());
                 InputCondition Condition;
                 for (int i = 0; i < 32; i++)
@@ -220,12 +221,12 @@ void ScriptAnalyzer::Analyze(char *Addr, BattleActor *Actor)
                 Condition.bInputAllowDisable = Actor->Player->SavedInputCondition.bInputAllowDisable;
                 Condition.Method = Actor->Player->SavedInputCondition.Method;
                 StateToModify->InputConditionList[StateToModify->InputConditionList.size() - 1].InputConditions.push_back(Condition);
-                break;
             }
+            break;
         case OPC_AddInputConditionList:
             if (StateToModify)
             {
-                StateToModify->InputConditionList.push_back(InputConditionList());
+                StateToModify->InputConditionList.emplace_back();
             }
             break;
         case OPC_AddStateCondition:
@@ -247,35 +248,20 @@ void ScriptAnalyzer::Analyze(char *Addr, BattleActor *Actor)
             }
             break;
         case OPC_BeginState:
-            break;
         case OPC_EndState:
-            return;
         case OPC_BeginSubroutine:
-            break;
         case OPC_EndSubroutine:
-            return;
         case OPC_CallSubroutineWithArgs:
-            break;
         case OPC_OnEnter:
-            break;
         case OPC_OnUpdate:
-            break;
         case OPC_OnExit:
-            break;
         case OPC_OnLanding:
-            break;
         case OPC_OnHit:
-            break;
         case OPC_OnBlock:
-            break;
         case OPC_OnHitOrBlock:
-            break;
         case OPC_OnCounterHit:
-            break;
         case OPC_OnSuperFreeze:
-            break;
         case OPC_OnSuperFreezeEnd:
-            break;
         case OPC_BeginLabel:
             break;
         case OPC_If:
@@ -353,7 +339,7 @@ void ScriptAnalyzer::Analyze(char *Addr, BattleActor *Actor)
             FindElse(&ElseAddr);
             code = OPC_EndIf;
             break;
-        };
+        }
         case OPC_Else:
             if (ElseAddr == Addr)
             {
@@ -990,6 +976,7 @@ void ScriptAnalyzer::Analyze(char *Addr, BattleActor *Actor)
                         *reinterpret_cast<int32_t*>(Addr + 80));
                 }
             }
+            break;
         case OPC_AddBattleActor:
             {
                 char* ParticleName = Addr + 4;
@@ -1004,6 +991,7 @@ void ScriptAnalyzer::Analyze(char *Addr, BattleActor *Actor)
                         *reinterpret_cast<int32_t*>(Addr + 72), *reinterpret_cast<PosType*>(Addr + 76));
                 }
             }
+            break;
         case OPC_EnableHit:
             Actor->EnableHit(*reinterpret_cast<bool*>(Addr + 4));
             break;
@@ -1227,6 +1215,7 @@ void ScriptAnalyzer::Analyze(char *Addr, BattleActor *Actor)
                     Actor->Player->AddChainCancelOption(StateName);
                 }
             }
+            break;
         case OPC_AddWhiffCancelOption:
             {
                 if (Actor->IsPlayer)
@@ -1236,7 +1225,6 @@ void ScriptAnalyzer::Analyze(char *Addr, BattleActor *Actor)
                     Actor->Player->AddWhiffCancelOption(StateName);
                 }
             }
-        default:
             break;
         }
         Addr += OpCodeSizes[code];

@@ -81,31 +81,7 @@ void BattleActor::Update()
 			Player->Inputs = Player->Inputs & ~(int)InputNeutral; //remove neutral input if directional input
 		}
 	}
-
-	//run input buffer before checking hitstop
-	if (IsPlayer && Player != nullptr)
-	{
-		if (!FacingRight && !Player->FlipInputs || Player->FlipInputs && FacingRight) //flip inputs with direction
-		{
-			const unsigned int Bit1 = (Player->Inputs >> 2) & 1;
-			const unsigned int Bit2 = (Player->Inputs >> 3) & 1;
-			unsigned int x = (Bit1 ^ Bit2);
-
-			x = x << 2 | x << 3;
-
-			Player->Inputs = Player->Inputs ^ x;
-		}
-			
-		if (!Player->Inputs << 27) //if no direction, set neutral input
-		{
-			Player->Inputs |= (int)InputNeutral;
-		}
-		else
-		{
-			Player->Inputs = Player->Inputs & ~(int)InputNeutral; //remove neutral input if directional input
-		}
-	}
-
+	
 	L = PosX - PushWidth / 2; //sets pushboxes
 	R = PosX + PushWidth / 2;
 	if (FacingRight)
